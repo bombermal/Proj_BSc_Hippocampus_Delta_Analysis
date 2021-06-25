@@ -3,7 +3,7 @@ clear
 clc
 close all
 format compact
-cd('D:/Ivan/Desktop/ICE');
+cd('D:/Ivan/OneDrive/Códigos ( Profissional )/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
 addpath('Rotinas/Functions/');
 srate=1250;
 dt=1/srate;
@@ -67,7 +67,7 @@ end
 clearvars -except dt srate dataFull dataLineCount
 %% Pre process
 % 1.1 - Save loaded files
-% savePath = 'D:/Ivan/Desktop/preProcessed/';
+% savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/preProcessed/';
 file = char(strcat(savePath, 'preProcessed.mat'));
 
 save(file, '-v7.3')
@@ -78,10 +78,10 @@ clear
 clc
 close all
 format compact
-cd('D:/Ivan/Desktop/ICE');
+cd('D:/Ivan/OneDrive/Códigos ( Profissional )/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
 addpath('Rotinas/Functions/');
 
-savePath = 'D:/Ivan/Desktop/ICE/Dataset/preProcessed/';
+savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/preProcessed/';
 file = char(strcat(savePath, 'preProcessed.mat'));
 
 load(file)
@@ -144,7 +144,7 @@ end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads
 %% Process file
 % 2.1 - Save loaded files
-% savePath = 'D:/Ivan/Desktop/ICE/Dataset/Processed/';
+% savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/';
 file = char(strcat(savePath, 'DeltaProcessed.mat'));
 
 save(file, '-v7.3')
@@ -155,10 +155,10 @@ clear
 clc
 close all
 format compact
-cd('D:/Ivan/Desktop/ICE');
+cd('D:/Ivan/OneDrive/Códigos ( Profissional )/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
 addpath('Rotinas/Functions/');
-savePath = 'D:/Ivan/Desktop/ICE/Dataset/Processed/';
-file = char(strcat(savePath, 'DeltaProcessed.mat'));
+savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/';
+file = char(strcat(savePath, 'PwelchProcessed.mat'));
 
 load(file)
 sprintf('Loaded file - Processed')
@@ -198,7 +198,7 @@ tittleLines = ["Group Maze x Wheel -> Pre x Pre - Ttest and RankSum", "Group Maz
 for nData=1:size(filesNames, 2)
     if save
         fileID = fopen(strcat(savePath, filesNames(nData)), 'w');
-        fprintf(fileID, strcat('\n', filesNames(nData), {' - '}, tittleLines(nData), '\n'));
+        fprintf(fileID, strcat('/n', filesNames(nData), {' - '}, tittleLines(nData), '\n'));
     else
         fileID = '';
     end
@@ -276,10 +276,8 @@ for nData=1:numReads
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
 %% 3.2.2 - Point plot - ERRADO? pegar dados da estatística
-clf
+% clf
 save = 0;
-% Usar Peak Power
-
 pMzPre = [];
 pWhPre = [];
 pMzPos = [];
@@ -295,53 +293,41 @@ for nData=1:numReads
             pWhPos = [pWhPos, dataFull{nData,i}.Pwelch.Px_wh];
         end
     end
+ 
 end
 
-compare = [mean(pMzPre)',mean(pWhPre)', mean(pMzPos)',mean(pWhPos)', mean(pMzPre)',mean(pMzPos)', mean(pMzPre)',mean(pWhPos)', mean(pWhPre)',mean(pWhPos)'];
-titles = ['Pre Mz x Pre Wh'; 'Pos Mz x Pos Wh'; 'Pre Mz x Pos Mz'; 'Pre Mz x Pos Wh'; 'Pre Wh x Pos Wh'];
-j=1;
-for i=1%:5
-    
-    aux = compare(:, j:i*2);
-    left = aux(:,1);
-    right = aux(:,2);
-    errL = std(left)/sqrt(size(left,1));
-    errR = std(right)/sqrt(size(right,1));
-    
-    fig = figure(i);
-    plot([1,2], aux, '.-')
-    hold on
-    bar(1, mean(left), 'FaceColor', 'none')
-    bar(2, mean(right), 'FaceColor', 'none')
-    % Err
-    errorbar([1,2], [mean(left), mean(right)], [errL, errR])
-    xticks([1,2])
-    xticklabels({titles(i, 1:6), titles(i, 10:end)})
-    xlim([0.5,2.5])
-    ylabel('Power')
-    ttl = strcat(titles(i, :),' - Pwelch mean');
-    title(ttl)
-    j = j+2;
-    % Aesthetics
-    set(gca, ...
-        'Box',      'off',...
-        'FontName', 'Helvetica',...
-        'TickDir',  'out', ...
-        'TickLength', [.02 .02],...
-        'YGrid',     'on',...
-        'GridLineStyle', '-.',...
-        'XColor',    [.3 .3 .3],...
-        'YColor',    [.3 .3 .3],...
-        'LineWidth', 1,...
-        'FontSize', 8, ...
-        'FontWeight', 'bold',...
-        'TitleFontSizeMultiplier', 1.6,...
-        'LabelFontSizeMultiplier', 1.4,...
-        'XScale', 'linear')  
-    if save
-        fileName = char(strcat(savePath, 'Group_', strrep(ttl,' ','_')));
-        saveas(fig,fileName, 'epsc');
-        saveas(fig,fileName, 'png');
+f = dataFull{1,1}.Pwelch.F;
+bands = [3,5; 6,10; 35,55; 65,110; 150,250];
+tittleLines = ['Pre Mz x Pre Wh'; 'Pos Mz x Pos Wh'; 'Pre Mz x Pos Mz'; 'Pre Wh x Pos Wh'; 'Pre Mz x Pos Wh'];
+for nData=1:3
+    for i=1:size(bands, 1)
+        dt = find( f> bands(i,1) & f <bands(i,2));
+        fig = figure(i);
+        fig.Position = [1 1 1900 1000];
+        if nData ==3
+            
+            % Pre x Pos Mz
+            ttl = strcat('Group',{' - '},tittleLines(3, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pWhPos,pMzPos,dt, 3, ttl, 'Maze Pre', 'Maze Pos')
+            
+            % Pre x Pos wh
+            ttl = strcat('Group',{' - '},tittleLines(4, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pWhPre,pWhPos,dt, 4, ttl, 'Wheel Pre', 'Wheel Pos')
+           
+            % Pre Mz x Pos wh
+            ttl = strcat('Group',{' - '},tittleLines(5, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pMzPre,pWhPos,dt, 5, ttl, 'Maze Pre', 'Wheel Pos')
+        else
+            pMzTemp = {pMzPre, pMzPos};
+            pWhTemp = {pWhPre, pWhPos};
+            ttl = strcat('Group',{' - '}, tittleLines(nData, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel')
+        end
+        if save
+            fileName = char(strcat(savePath, 'Group_', sprintf('%i_%i_Hz', bands(i,1),bands(i,2))));
+            saveas(fig,fileName, 'epsc');
+            saveas(fig,fileName, 'png');
+        end
     end
 end
 % clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
@@ -471,65 +457,7 @@ if save
     saveas(fig,fileName, 'png');
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.5 - Power group Errado?
-clf
-save = 0;
-for nData=1:numReads
-    F = [];
-    mz = [];
-    wh = [];
-    for i=1:dataLineCount(nData)
-        mz = [mz, dataFull{nData,i}.Pwelch.Px_mz_Norm];
-        wh = [wh, dataFull{nData,i}.Pwelch.Px_wh_Norm];
-    end
-    name = 'Pre';
-    if nData == 2
-       name = 'Pos';
-    end
-    
-    % Mean
-    meanMz = mean(mz);
-    meanWh = mean(wh);
-    
-    errL = std(meanMz)/sqrt(size(meanMz,1));
-    errR = std(meanWh)/sqrt(size(meanWh,1));
-    %stdMean = std/sqt(n)
-    
-    fig = figure(nData);
-    plot( [1,2], [meanMz',meanWh'], '.-')
-    hold on
-    bar(1, mean(meanMz), 'FaceColor', 'none')
-    bar(2, mean(meanWh), 'FaceColor', 'none')
-    errorbar([1,2], [mean(meanMz), mean(meanWh)], [mean(meanMz)-errL, mean(meanWh)-errR], [mean(meanMz)+errL, mean(meanWh)], 'k')
-    xticklabels({'','', 'Maze', '', 'Wheel'})
-    xlim([0.5,2.5])
-    ylabel('Pwelch normalized(Max power)')
-    ttl = sprintf('%s Delta - Power', name);
-    title(ttl)
-    % Aesthetics
-    set(gca, ...
-        'Box',      'off',...
-        'FontName', 'Helvetica',...
-        'TickDir',  'out', ...
-        'TickLength', [.02 .02],...
-        'YGrid',     'on',...
-        'GridLineStyle', '-.',...
-        'XColor',    [.3 .3 .3],...
-        'YColor',    [.3 .3 .3],...
-        'LineWidth', 1,...
-        'FontSize', 8, ...
-        'FontWeight', 'bold',...
-        'TitleFontSizeMultiplier', 1.6,...
-        'LabelFontSizeMultiplier', 1.4,...
-        'XScale', 'linear') 
-end
-if save
-    fileName = char(strcat(savePath, 'Group_Pre_n_Pos_Pwelch_Mean'));
-    saveas(fig,fileName, 'epsc');
-    saveas(fig,fileName, 'png');
-end
-clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.6 - InstFreq Corr Indiv
+%% 3.2.5 - InstFreq Corr Indiv
 clf
 save = 1;
 for nData=1:numReads
@@ -657,7 +585,7 @@ for nData=1:numReads
     end
 end
 
-%% 3.2.7 - InstFreq Corr Group 
+%% 3.2.6 - InstFreq Corr Group 
 clf
 save = 0;
 for nData=1:numReads
@@ -723,7 +651,7 @@ for nData=1:numReads
 
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.8 - Amplitude group
+%% 3.2.7 - Amplitude group
 clf
 save = 0;
 for nData=1:numReads
@@ -789,7 +717,7 @@ for nData=1:numReads
     end
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.9 - Auto corr
+%% 3.2.8 - Auto corr
 clf
 save = 0;
 for nData=1:numReads
@@ -932,7 +860,7 @@ for nData=1:numReads
 
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.10 - Snippet corr
+%% 3.2.9 - Snippet corr
 
 clf
 save = 0;
@@ -1034,3 +962,4 @@ for nData=1:numReads
     end
 end
 %%
+
