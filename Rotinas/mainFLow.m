@@ -46,7 +46,9 @@ for i=1:numDir
         lapsNames(find(strcmp(lapsNames, 'WhlSpeedCCW'))) = [];
         lapsNames(find(strcmp(lapsNames, 'WhlSpeedCW'))) = [];
         spikeNames = fieldnames(dataFull{i,j}.Spike);
-        spikeNames(find(strcmp(spikeNames, 'clu'))) = [];
+        spikeNames(find(strcmp(spikeNames, 'totclu'))) = [];
+        spikeNames(find(strcmp(spikeNames, 'speed_MMsec'))) = [];
+        spikeNames(find(strcmp(spikeNames, 'whlSpeed'))) = [];
         spikeNames(find(strcmp(spikeNames, 'res'))) = [];
         cluNames = fieldnames(dataFull{i,j}.Clu);
         cluNames(find(strcmp(cluNames, 'isIntern'))) = [];
@@ -94,7 +96,7 @@ sprintf('Loaded file - Pre processed')
 %     %Load
 %     clearvars -except fileNames nm
 %     
-%     savePath = 'D:/Ivan/Desktop/ICE/Dataset/preProcessed/';
+%     savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/preProcessed/';
 %     file = char(strcat(savePath, 'preProcessed.mat'));
 % 
 %     load(file)
@@ -118,7 +120,7 @@ sprintf('Loaded file - Pre processed')
 %     end
 %     %Save
 %     
-%     savePath = 'D:/Ivan/Desktop/ICE/Dataset/Processed/';
+%     savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/';
 %     file = char(strcat(savePath, fileNames(nm)));
 % 
 %     save(file, '-v7.3')
@@ -150,7 +152,7 @@ file = char(strcat(savePath, 'DeltaProcessed.mat'));
 save(file, '-v7.3')
 %% Load processed file
 % 2.2 - Load file
-
+tic
 clear
 clc
 close all
@@ -158,10 +160,11 @@ format compact
 cd('D:/Ivan/OneDrive/Códigos ( Profissional )/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
 addpath('Rotinas/Functions/');
 savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/';
-file = char(strcat(savePath, 'PwelchProcessed.mat'));
+file = char(strcat(savePath, 'DeltaProcessed.mat'));
 
 load(file)
 sprintf('Loaded file - Processed')
+toc
 %% 3 - Analyse
 % 3.1 - Statistics
 % 3.2 - Graphs
@@ -198,7 +201,7 @@ tittleLines = ["Group Maze x Wheel -> Pre x Pre - Ttest and RankSum", "Group Maz
 for nData=1:size(filesNames, 2)
     if save
         fileID = fopen(strcat(savePath, filesNames(nData)), 'w');
-        fprintf(fileID, strcat('/n', filesNames(nData), {' - '}, tittleLines(nData), '\n'));
+        fprintf(fileID, strcat('\n', filesNames(nData), {' - '}, tittleLines(nData), '\n'));
     else
         fileID = '';
     end
@@ -207,20 +210,21 @@ for nData=1:size(filesNames, 2)
         dt = find( f> bands(i,1) & f <bands(i,2));
         if nData ==3
             % Pre x Pos Mz
-            [perc, power, peak] = printStats(pMzPre, pMzPos, dt, bands, i, f);
+            [perc, power, peak] = printStats(pMzPre, pMzPos, dt, bands, i, f,'Pre x Pos Mz');
             pppSave(perc, power, peak, save, fileID);
             
             % Pre x Pos wh
-            [perc, power, peak] = printStats(pWhPre, pWhPos, dt, bands, i, f);
+            [perc, power, peak] = printStats(pWhPre, pWhPos, dt, bands, i, f,'Pre x Pos wh');
             pppSave(perc, power, peak, save, fileID);
             
             % Pre Mz x Pos wh
-            [perc, power, peak] = printStats(pMzPre, pWhPos, dt, bands, i, f);
+            [perc, power, peak] = printStats(pMzPre, pWhPos, dt, bands, i, f, 'Pre Mz x Pos Wh');
             pppSave(perc, power, peak, save, fileID);
         else
             pMzTemp = {pMzPre, pMzPos};
             pWhTemp = {pWhPre, pWhPos};
-            [perc, power, peak] = printStats(pMzTemp{nData}, pWhTemp{nData}, dt, bands, i, f);
+            ex = {'Pre Mz x Pre Wh', 'Pos Mz x Pos Wh'};
+            [perc, power, peak] = printStats(pMzTemp{nData}, pWhTemp{nData}, dt, bands, i, f, ex{nData});
             pppSave(perc, power, peak, save, fileID);
         end
     end
@@ -275,7 +279,7 @@ for nData=1:numReads
     end
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.2 - Point plot - ERRADO? pegar dados da estatística
+%% 3.2.2 - Point plot
 % clf
 save = 0;
 pMzPre = [];
@@ -307,30 +311,43 @@ for nData=1:3
         if nData ==3
             
             % Pre x Pos Mz
-            ttl = strcat('Group',{' - '},tittleLines(3, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pWhPos,pMzPos,dt, 3, ttl, 'Maze Pre', 'Maze Pos')
+            ttl = strcat('Group Peak',{' - '},tittleLines(3, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pWhPos,pMzPos,dt, 3, ttl, 'Maze Pre', 'Maze Pos', f, bands(i,1),bands(i,2))
             
             % Pre x Pos wh
-            ttl = strcat('Group',{' - '},tittleLines(4, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pWhPre,pWhPos,dt, 4, ttl, 'Wheel Pre', 'Wheel Pos')
+            ttl = strcat('Group Peak',{' - '},tittleLines(4, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pWhPre,pWhPos,dt, 4, ttl, 'Wheel Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
            
             % Pre Mz x Pos wh
-            ttl = strcat('Group',{' - '},tittleLines(5, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pMzPre,pWhPos,dt, 5, ttl, 'Maze Pre', 'Wheel Pos')
+            ttl = strcat('Group Peak',{' - '},tittleLines(5, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pMzPre,pWhPos,dt, 5, ttl, 'Maze Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
         else
             pMzTemp = {pMzPre, pMzPos};
             pWhTemp = {pWhPre, pWhPos};
-            ttl = strcat('Group',{' - '}, tittleLines(nData, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel')
+            ttl = strcat('Group Peak',{' - '}, tittleLines(nData, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
+            plotStats(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel', f, bands(i,1),bands(i,2))
+            
+            [maxLeft, idxMz] = max(pMzTemp{nData}(dt, :));
+            [maxRight, idxWh] = max(pWhTemp{nData}(dt, :));
+
+            peakLeft = f(dt(idxMz));
+            peakRight = f(dt(idxWh));
+
+            left = maxLeft;
+            right = maxRight;
+            % Error
+            errL = std(left)/sqrt(size(left,1));
+            errR = std(right)/sqrt(size(right,1));
+                       
         end
         if save
-            fileName = char(strcat(savePath, 'Group_', sprintf('%i_%i_Hz', bands(i,1),bands(i,2))));
+            fileName = char(strcat(savePath, 'Group_PEAK_', sprintf('%i_%i_Hz', bands(i,1),bands(i,2))));
             saveas(fig,fileName, 'epsc');
             saveas(fig,fileName, 'png');
         end
     end
 end
-% clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
+clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
 %% 3.2.3 - Individual PSD
 save = 0;
 for nData=1:numReads
@@ -721,7 +738,7 @@ clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath 
 clf
 save = 0;
 for nData=1:numReads
-    for i=1:dataLineCount(nData)
+    for i=1%:dataLineCount(nData)
         sprintf('%d %d',nData, i)
                 
         if nData == 1
@@ -861,7 +878,6 @@ for nData=1:numReads
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
 %% 3.2.9 - Snippet corr
-
 clf
 save = 0;
 for nData=1:numReads
@@ -903,13 +919,14 @@ for nData=1:numReads
             dataFull{nData,i}.Track.WhSnippetPos = auxWh;
         end
         
-        
         fig = figure(fgSpace+i);
         fig.Position = [1 1 1900 1000];
         subplot(1,2,1)
         imagesc(lagsMz, [1:size(auxMz, 1)], auxMz)
-        ylabel('Snippet')
-        xlabel('Time')
+        ylabel('Time(s)')
+        xlabel('Time(ms)')
+        ytks = gca;
+        ytks.YTickLabel = ytks.YTick * 10;
         colorbar
         caxis([-0.5,1])
         xlim([-500, 500])
@@ -919,21 +936,18 @@ for nData=1:numReads
             'Box',      'off',...
             'FontName', 'Helvetica',...
             'TickDir',  'out', ...
-            'TickLength', [.02 .02],...
-            'YGrid',     'on',...
-            'GridLineStyle', '-.',...
-            'XColor',    [.3 .3 .3],...
-            'YColor',    [.3 .3 .3],...
             'LineWidth', 1,...
-            'FontSize', 8, ...
+            'FontSize', 15, ...
             'FontWeight', 'bold',...
             'TitleFontSizeMultiplier', 1.6,...
             'LabelFontSizeMultiplier', 1.4,...
             'XScale', 'linear') 
         subplot(1,2,2)
         imagesc(lagsWh, [1:size(auxWh, 1)], auxWh)
-        ylabel('Snippet')
-        xlabel('Time')
+        ylabel('Time(s)')
+        xlabel('Time(ms)')
+        ytks = gca;
+        ytks.YTickLabel = ytks.YTick * 10;
         colorbar
         caxis([-0.5,1])
         xlim([-500, 500])
@@ -943,13 +957,8 @@ for nData=1:numReads
             'Box',      'off',...
             'FontName', 'Helvetica',...
             'TickDir',  'out', ...
-            'TickLength', [.02 .02],...
-            'YGrid',     'on',...
-            'GridLineStyle', '-.',...
-            'XColor',    [.3 .3 .3],...
-            'YColor',    [.3 .3 .3],...
             'LineWidth', 1,...
-            'FontSize', 8, ...
+            'FontSize', 15, ...
             'FontWeight', 'bold',...
             'TitleFontSizeMultiplier', 1.6,...
             'LabelFontSizeMultiplier', 1.4,...
@@ -961,5 +970,314 @@ for nData=1:numReads
         end
     end
 end
-%%
+%% 3.2.10 - Combined ACG
+clf
+save = 0;
+for nData=1:numReads
+    for i=1:dataLineCount(nData)
+        sprintf('%d %d',nData, i)
+                
+        if nData == 1
+            ttl = 'Autocorrelogram - Pre Muscimol';
+            name = 'pre';
+            fgSpace = 0;
+        else
+            ttl = 'Autocorrelogram - Pos Muscimol';
+            name = 'pos';
+            fgSpace = numSubReads;
+        end
+        
+        LFPMz = dataFull{nData,i}.Track.LFPMz;
+        LFPWh = dataFull{nData,i}.Track.LFPWh;
+    
+        % Capture snippet
+        auxMz = [];
+        ms = 10*srate; % Sec
+        for idx=[1:ms:size(LFPMz, 2)-ms]
+            [acg, lagsMz] = xcorr(LFPMz(idx:idx+ms),'coef', 1000);    
+            auxMz = [ auxMz; acg ];
+        end    
+        
+        auxWh = [];
+        for idx=[1:ms:size(LFPWh, 2)-ms]
+            [acg, lagsWh] = xcorr(LFPWh(idx:idx+ms),'coef', 1000);    
+            auxWh = [ auxWh; acg ];
+        end
+        
+        % ACG
+        [mz, mzLags] = xcorr(LFPMz, 'coef', 1000);
+        [wh, whLags] = xcorr(LFPWh, 'coef', 1000);
+        
+        whIdx = dataFull{nData,i}.Laps.WhIdx;
+        mzIdx = dataFull{nData,i}.Laps.MzIdx;
+        
+        deltaMz = dataFull{nData,i}.Bands.Delta(mzIdx);
+        deltaWh = dataFull{nData,i}.Bands.Delta(whIdx);
+        
+%         [dtMz, dtMzLags] = xcorr(deltaMz, 'coef', 1000);
+%         [dtWh, dtWhLags] = xcorr(deltaWh, 'coef', 1000);
+        
+        %Plot
+        fig = figure(fgSpace+i);
+        sgtitle(ttl)
+        fig.Position = [1 1 1600 1000];
+        subplot(1,2,1);
+        yyaxis right
+        plot(mzLags, mz, 'w')%, 'LineWidth',1.2)
+        ylabel('ACG')
+        ylim([-0.6,1])
+        hold on
+        yyaxis left
+        imagesc(lagsMz, [1:size(auxMz, 1)], auxMz)
+        ylabel('Time(s)')
+        xlabel('Lag(ms)')
+        xlim([-500,500])
+        title(strcat(dataFull{nData,i}.Name(1:16), ' ACG LFP', {' '}, name, ' Mz'))
+        % Aesthetics
+        set(gca, ...
+            'Box',      'off',...
+            'FontName', 'Helvetica',...
+            'TickDir',  'out', ...
+            'TickLength', [.02 .02],...
+            'YGrid',     'on',...
+            'GridLineStyle', '-.',...
+            'XColor',    [.3 .3 .3],...
+            'YColor',    [.3 .3 .3],...
+            'LineWidth', 1,...
+            'FontSize', 8, ...
+            'FontWeight', 'bold',...
+            'TitleFontSizeMultiplier', 1.6,...
+            'LabelFontSizeMultiplier', 1.4,...
+            'XScale', 'linear') 
+        
+        subplot(1,2,2);
+        yyaxis right
+        plot(whLags, wh, 'w')%, 'LineWidth',2)
+        ylabel('ACG')
+        ylim([-0.6,1])
+        hold on
+        yyaxis left
+        imagesc(lagsWh, [1:size(auxWh, 1)], auxWh)
+        ylabel('Time(s)')
+        xlabel('Lag(ms)')
+        xlim([-500,500])
+        title(strcat(dataFull{nData,i}.Name(1:16), ' ACG LFP', {' '}, name, ' Wh'))
+        % Aesthetics
+        set(gca, ...
+            'Box',      'off',...
+            'FontName', 'Helvetica',...
+            'TickDir',  'out', ...
+            'TickLength', [.02 .02],...
+            'YGrid',     'on',...
+            'GridLineStyle', '-.',...
+            'XColor',    [.3 .3 .3],...
+            'YColor',    [.3 .3 .3],...
+            'LineWidth', 1,...
+            'FontSize', 8, ...
+            'FontWeight', 'bold',...
+            'TitleFontSizeMultiplier', 1.6,...
+            'LabelFontSizeMultiplier', 1.4,...
+            'XScale', 'linear') 
 
+        
+        if save
+          fileNameLFP = char(strcat(savePath, 'Combined_Individual_', dataFull{nData,i}.Name(1:16),{'_'},name,'_ACG_LFP'));
+          saveas(fig,fileNameLFP, 'epsc');
+          saveas(fig,fileNameLFP, 'png');
+        end
+
+    end
+
+end
+clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
+%% 4.1 - Firing rate
+namesLst = [];
+valLst = zeros(dataLineCount(1),4);
+
+% for nData=1:numReads
+%     for i=1:dataLineCount(nData)
+%         if nData == 1
+%             namesLst = [namesLst; dataFull{nData,i}.Name(1:13)];
+%         end
+%         spktimes = dataFull{nData,i}.Spike.res;
+%         spkid    = dataFull{nData,i}.Spike.totclu;
+%         IsInt    = dataFull{nData,i}.Clu.isIntern;
+%         % idx MZ-WH
+%         MzSpeed = dataFull{nData,i}.Spike.speed_MMsec;%Track.speed_MMsec;%Speed on maze
+%         WhSpeed = dataFull{nData,i}.Spike.whlSpeed;%Laps.WhlSpeedCW+Laps.WhlSpeedCCW;%Speed on wheel
+%         Mzidx   = find(MzSpeed>100);
+%         Whidx   = find(WhSpeed>100);
+%         %TIME
+%         Mzlength = sum(dataFull{nData,i}.Track.speed_MMsec>100)/srate;
+%         Whlength = sum((dataFull{nData,i}.Laps.WhlSpeedCW+dataFull{nData,i}.Laps.WhlSpeedCCW)>100)/srate;
+%         for n=1:length(IsInt)
+%             clear spktemp
+%             spktemp    = find(spkid==n);
+%             FrateMz{nData,i}(n) = sum(ismember(spktemp,Mzidx))/Mzlength;
+%             FrateWh{nData,i}(n) = sum(ismember(spktemp,Whidx))/Whlength;
+%         end
+%         Interneurons{nData,i}=IsInt;
+%         valLst(i, nData) =  length(FrateMz{nData,i});
+%         valLst(i, nData+2) =  length(FrateWh{nData,i});
+%     end
+% end
+
+mzRate = {};
+whRate = {};
+for nData=1:numReads
+    mzRate{nData} = [];
+    whRate{nData} = [];
+    for i=1:dataLineCount(nData)
+        if nData == 1
+            namesLst = [namesLst; dataFull{nData,i}.Name(1:13)];
+        end
+        spktimes = dataFull{nData,i}.Spike.res;
+        spkid    = dataFull{nData,i}.Spike.totclu;
+        IsInt    = dataFull{nData,i}.Clu.isIntern;
+        % idx MZ-WH
+        MzSpeed = dataFull{nData,i}.Spike.speed_MMsec;%Track.speed_MMsec;%Speed on maze
+        WhSpeed = dataFull{nData,i}.Spike.whlSpeed;%Laps.WhlSpeedCW+Laps.WhlSpeedCCW;%Speed on wheel
+        Mzidx   = find(MzSpeed>100);
+        Whidx   = find(WhSpeed>100);
+        %TIME
+        Mzlength = sum(dataFull{nData,i}.Track.speed_MMsec>100)/srate;
+        Whlength = sum((dataFull{nData,i}.Laps.WhlSpeedCW+dataFull{nData,i}.Laps.WhlSpeedCCW)>100)/srate;
+        
+        respM = zeros(2, length(IsInt));
+        respW = zeros(2, length(IsInt));
+        for j=1:length(IsInt)
+            respM(1,j) = length(find(spkid(Mzidx)==j))/Mzlength;           
+            respM(2,j) = IsInt(j);
+            respW(1,j) = length(find(spkid(Whidx)==j))/Whlength;                       
+            respW(2,j) = IsInt(j);
+        end
+        
+        mzRate{nData}  = [mzRate{nData}, respM];
+        whRate{nData}  = [whRate{nData}, respW]; 
+    end
+end
+
+meanIsNoMz = zeros(1,2);
+meanIsInMz = zeros(1,2);
+meanIsNoWh = zeros(1,2);
+meanIsInWh = zeros(1,2);
+for i=1:2
+    meanIsNoMz(i) = mean(mzRate{i}(1,find(mzRate{i}(2,:) == 0)));
+    meanIsInMz(i) = mean(mzRate{i}(1,find(mzRate{i}(2,:) == 1)));
+    meanIsNoWh(i) = mean(whRate{i}(1,find(whRate{i}(2,:) == 0)));
+    meanIsInWh(i) = mean(whRate{i}(1,find(whRate{i}(2,:) == 1)));
+    if i == 1
+        sprintf('Pre')
+    else
+        sprintf('Pos')
+    end
+    sprintf('Mz IsInt: %f IsNInt: %f\nWh: IsInt: %f IsNInt: %f\n', meanIsInMz(i), meanIsNoMz(i), meanIsInWh(i), meanIsNoWh(i)) 
+end
+
+
+save = 0;
+if save
+    fileID = fopen(strcat(savePath,'Individual_spike_number.txt'), 'w');
+    fprintf(fileID, "Spikes count\n");
+else
+    fileID = '';
+end
+
+% for i=1:length(mzRate)
+%     temp = sprintf('Neuron %i: Mz %0.5f, Wh %0.5f\n', i, respM(i), respW(i))
+%     if save
+%         fprintf(fileID, temp)
+%     end
+% end
+if save
+    fclose(fileID)
+end
+% for nData=1:numReads
+%     Mz  = [];
+%     Wh  = [];
+%     Nn  = [];
+%     IsI = [];
+%     for i=1:dataLineCount(nData)
+%         Mz  = [Mz, FrateMz{nData,i}];
+%         Wh  = [Wh, FrateWh{nData,i}];
+%         Nn  = [Nn, length(Interneurons{nData,i})];
+%         IsI = [IsI, Interneurons{nData,i}];
+%     end
+%     MzFr{nData}   = Mz;
+%     WhFr{nData}   = Wh;
+%     Nneur{nData}  = Nn;
+%     Intern{nData} = IsI;
+% end
+% clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos MzFr WhFr Intern
+%% 4.2 - Plot fire rate
+clf
+save = 0;
+conditions = [ 1,1,1 ; 2,2,2; 1,2,1; 1,2,1];
+titles = ["Pre", "Pos", "Maze", "Wheel"];
+xLabels = ["Maze", "Wheel"; "Maze","Wheel"; "Pre","Pos"; "Pre", "Pos"];
+pyrList = ["Pyramidal", "Interneuron"];
+
+for pyr=0:1
+    for i=1:size(conditions, 1)
+        cond = conditions(i,:);
+
+        if i == 1
+            left = MzFr{cond(1)};
+            right = WhFr{cond(2)};
+        elseif i == 2
+            left = MzFr{cond(1)};
+            right = WhFr{cond(2)};
+        elseif i == 3
+            left = MzFr{cond(1)};
+            right = MzFr{cond(2)};
+        else
+            left = WhFr{cond(1)};
+            right = WhFr{cond(2)};    
+        end
+
+        thresh = 0.01;
+        FRidx = find(left>thresh & right>thresh & Intern{cond(3)}==pyr);
+        FRleft = left(FRidx);
+        FRright = right(FRidx);
+
+        fig = figure(pyr+1);
+        subplot(2,2,i)
+        bar([mean(FRleft),mean(FRright)],'w')
+        hold on        
+        errorbar([mean(FRleft),mean(FRright)],[std(FRleft)/sqrt(length(FRleft)),std(FRright)/sqrt(length(FRright))],'.k')
+        xlim([0, 3])
+        xticklabels({xLabels(i,1), xLabels(i,2)})
+        title(strcat(pyrList(pyr+1), {' - '}, titles(i)))
+        ylabel('Firing rate (Hz)')
+        [h, p] = ttest(FRleft,FRright);
+%         sprintf("h: %f p: %f", h, p)
+        hold on
+        if h == 1
+            plot(1.5, 0.0, '*')
+            text(1.5, 0.5, sprintf('P-value: %0.4f', p), 'Rotation', 90)
+        end
+        set(gca, ...
+        'Box',      'off',...
+        'FontName', 'Helvetica',...
+        'TickDir',  'out', ...
+        'TickLength', [.02 .02],...
+        'YGrid',     'on',...
+        'GridLineStyle', '-.',...
+        'XColor',    [.3 .3 .3],...
+        'YColor',    [.3 .3 .3],...
+        'LineWidth', 1,...
+        'FontSize', 8, ...
+        'FontWeight', 'bold',...
+        'TitleFontSizeMultiplier', 1.6,...
+        'LabelFontSizeMultiplier', 1.4,...
+        'XScale', 'linear')  
+    
+    end
+    if save
+      fileNameLFP = char(strcat(savePath, 'Group_', pyrList(pyr+1), {'_'}, titles(i), '_Fire_Rate'));
+      saveas(fig,fileNameLFP, 'epsc');
+      saveas(fig,fileNameLFP, 'png');
+    end
+end
+clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos MzFr WhFr Intern
+%%

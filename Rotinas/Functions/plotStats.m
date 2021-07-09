@@ -1,30 +1,35 @@
 
-function plotStats( leftData, rightData, dt, nData, toTitle, lLabel, rLabel)
-    left = sum(leftData(dt, :), 1);
-    right = sum(rightData(dt, :), 1);
-
-    % Error
-    errL = std(left)/sqrt(size(left,1));
-    errR = std(right)/sqrt(size(right,1));
+function plotStats( leftData, rightData, dt, nData, toTitle, lLabel, rLabel, f, yInf, ySup)
+%     left = sum(leftData(dt, :), 1);
+%     right = sum(rightData(dt, :), 1);
     
     % P-value
-%     [maxPowerMz, idxMz] = max(leftData(dt, :));
-%     [maxPowerWh, idxWh] = max(rightData(dt, :));
-%     normFactor = mean([maxPowerMz; maxPowerWh]);
+    [maxLeft, idxMz] = max(leftData(dt, :));
+    [maxRight, idxWh] = max(rightData(dt, :));
 
-%     [ht, pt, hr, pr] = calcStats(maxPowerMz, maxPowerWh, normFactor);
+    peakLeft = f(dt(idxMz));
+    peakRight = f(dt(idxWh));
+ 
+    left = peakLeft';
+    right = peakRight';
+    % Error
+    errL = std(left)/sqrt(length(left));
+    errR = std(right)/sqrt(length(right));
+    
+%     [ht, pt, hr, pr] = calcStats(maxLeft, maxRight, normFactor);
     
     % Plot
     subplot(2,3,nData)
     plot([1,2], [left',right'], '.-')
     hold on
-    bar(1, mean(left), 'FaceColor', 'none')
-    bar(2, mean(right), 'FaceColor', 'none')
-    errorbar([1,2], [mean(left), mean(right)], [errL, errR])
+%     bar(1, mean(left), 'FaceColor', 'none')
+%     bar(2, mean(right), 'FaceColor', 'none')
+    errorbar([1,2], [median(left), median(right)], [errL, errR])
     xlim([0.5,2.5]);
+    ylim([yInf, ySup]);
     xticklabels({'', lLabel, '', rLabel})
-%     title(strcat(toTitle,{'/n'}, sprintf('TStudent: %f RankSum: %f', pr, pt)))
     title(toTitle)
+%     axis tight
     % Aesthetics
     set(gca, ...
         'Box',      'off',...
