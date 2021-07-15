@@ -72,7 +72,7 @@ clearvars -except dt srate dataFull dataLineCount
 % savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/preProcessed/';
 file = char(strcat(savePath, 'preProcessed.mat'));
 
-save(file, '-v7.3')
+% save(file, '-v7.3')
 %% Load pre processed file
 % 1.2 - Load file
 
@@ -149,7 +149,7 @@ clearvars -except dataFull srate dt dataLineCount numReads numSubReads
 % savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/';
 file = char(strcat(savePath, 'DeltaProcessed.mat'));
 
-save(file, '-v7.3')
+% save(file, '-v7.3')
 %% Load processed file
 % 2.2 - Load file
 tic
@@ -160,7 +160,7 @@ format compact
 cd('D:/Ivan/OneDrive/Códigos ( Profissional )/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
 addpath('Rotinas/Functions/');
 savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/';
-file = char(strcat(savePath, 'DeltaProcessed.mat'));
+file = char(strcat(savePath, 'PwelchProcessed.mat'));
 
 load(file)
 sprintf('Loaded file - Processed')
@@ -279,7 +279,7 @@ for nData=1:numReads
     end
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.2 - Point plot
+%% 3.2.2 - Group Point plot
 % clf
 save = 0;
 pMzPre = [];
@@ -312,20 +312,20 @@ for nData=1:3
             
             % Pre x Pos Mz
             ttl = strcat('Group Peak',{' - '},tittleLines(3, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pWhPos,pMzPos,dt, 3, ttl, 'Maze Pre', 'Maze Pos', f, bands(i,1),bands(i,2))
+            plotStatsGroup(pWhPos,pMzPos,dt, 3, ttl, 'Maze Pre', 'Maze Pos', f, bands(i,1),bands(i,2))
             
             % Pre x Pos wh
             ttl = strcat('Group Peak',{' - '},tittleLines(4, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pWhPre,pWhPos,dt, 4, ttl, 'Wheel Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
+            plotStatsGroup(pWhPre,pWhPos,dt, 4, ttl, 'Wheel Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
            
             % Pre Mz x Pos wh
             ttl = strcat('Group Peak',{' - '},tittleLines(5, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pMzPre,pWhPos,dt, 5, ttl, 'Maze Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
+            plotStatsGroup(pMzPre,pWhPos,dt, 5, ttl, 'Maze Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
         else
             pMzTemp = {pMzPre, pMzPos};
             pWhTemp = {pWhPre, pWhPos};
             ttl = strcat('Group Peak',{' - '}, tittleLines(nData, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStats(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel', f, bands(i,1),bands(i,2))
+            plotStatsGroup(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel', f, bands(i,1),bands(i,2))
             
             [maxLeft, idxMz] = max(pMzTemp{nData}(dt, :));
             [maxRight, idxWh] = max(pWhTemp{nData}(dt, :));
@@ -342,6 +342,72 @@ for nData=1:3
         end
         if save
             fileName = char(strcat(savePath, 'Group_PEAK_', sprintf('%i_%i_Hz', bands(i,1),bands(i,2))));
+            saveas(fig,fileName, 'epsc');
+            saveas(fig,fileName, 'png');
+        end
+    end
+end
+clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
+%% 3.2.2b - Individual point plot
+
+% clf
+save = 1;
+f = dataFull{1,1}.Pwelch.F;
+bands = [3,5; 6,10];
+tittleLines = ['Pre Mz x Pre Wh'; 'Pos Mz x Pos Wh'; 'Pre Mz x Pos Mz'; 'Pre Wh x Pos Wh'; 'Pre Mz x Pos Wh'];
+dodge = [0:2:(size(tittleLines, 1)*2)];
+% Pre x Pos
+for nData=1:size(tittleLines, 1)
+    % Bands   
+    for i=1:size(bands, 1)
+        % Animals
+        dt = find( f> bands(i,1) & f <bands(i,2));
+        fig = figure(i+dodge(nData));
+        fig.Position = [1 1 1900 1000];
+        for j=1:10
+            if nData == 1
+                leftData = dataFull{nData,j}.Pwelch.Px_mz;
+                rightData = dataFull{nData,j}.Pwelch.Px_wh;
+                moment = 'Pre';
+                xlabel = {'Maze', 'Wheel'};
+            elseif nData == 2
+                leftData = dataFull{nData,j}.Pwelch.Px_mz;
+                rightData = dataFull{nData,j}.Pwelch.Px_wh;
+                moment = 'Pos';
+                xlabel = {'Maze', 'Wheel'};
+            elseif nData == 3
+                leftData = dataFull{1,j}.Pwelch.Px_mz;
+                rightData = dataFull{2,j}.Pwelch.Px_mz;
+                moment = 'Pre x Pos';
+                xlabel = {'Maze', 'Maze'};
+            elseif nData == 4
+                leftData = dataFull{1,j}.Pwelch.Px_wh;
+                rightData = dataFull{2,j}.Pwelch.Px_wh;
+                moment = 'Pre x Pos';
+                xlabel = {'Wheel', 'Wheel'};
+            else
+                leftData = dataFull{1,j}.Pwelch.Px_mz;
+                rightData = dataFull{2,j}.Pwelch.Px_wh;
+                moment = 'Pre x Pos';  
+                xlabel = {'Maze', 'Wheel'};  
+            end
+
+            % P-value
+            [maxLeft, idxMz] = max(leftData(dt, :));
+            [maxRight, idxWh] = max(rightData(dt, :));
+
+            peakLeft = f(dt(idxMz));
+            peakRight = f(dt(idxWh));
+
+            subplot(2,5,j)
+            bar([1,2], [peakLeft, peakRight], 'FaceColor', 'none')
+            xlim([0.5,2.5]);
+            ylim([bands(i,1), bands(i,2)]);
+            xticklabels(xlabel)
+            title(sprintf('%s: %i Hz - %i Hz (%s)', dataFull{1,j}.Name(1:13), bands(i, 1), bands(i,2), moment))
+        end
+        if save
+            fileName = char(strcat(savePath, 'Indiv_PEAK_', sprintf('Combined_%i_%i_Hz_%i', bands(i,1),bands(i,2), nData)));
             saveas(fig,fileName, 'epsc');
             saveas(fig,fileName, 'png');
         end
@@ -1093,34 +1159,6 @@ clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath 
 %% 4.1 - Firing rate
 namesLst = [];
 valLst = zeros(dataLineCount(1),4);
-
-% for nData=1:numReads
-%     for i=1:dataLineCount(nData)
-%         if nData == 1
-%             namesLst = [namesLst; dataFull{nData,i}.Name(1:13)];
-%         end
-%         spktimes = dataFull{nData,i}.Spike.res;
-%         spkid    = dataFull{nData,i}.Spike.totclu;
-%         IsInt    = dataFull{nData,i}.Clu.isIntern;
-%         % idx MZ-WH
-%         MzSpeed = dataFull{nData,i}.Spike.speed_MMsec;%Track.speed_MMsec;%Speed on maze
-%         WhSpeed = dataFull{nData,i}.Spike.whlSpeed;%Laps.WhlSpeedCW+Laps.WhlSpeedCCW;%Speed on wheel
-%         Mzidx   = find(MzSpeed>100);
-%         Whidx   = find(WhSpeed>100);
-%         %TIME
-%         Mzlength = sum(dataFull{nData,i}.Track.speed_MMsec>100)/srate;
-%         Whlength = sum((dataFull{nData,i}.Laps.WhlSpeedCW+dataFull{nData,i}.Laps.WhlSpeedCCW)>100)/srate;
-%         for n=1:length(IsInt)
-%             clear spktemp
-%             spktemp    = find(spkid==n);
-%             FrateMz{nData,i}(n) = sum(ismember(spktemp,Mzidx))/Mzlength;
-%             FrateWh{nData,i}(n) = sum(ismember(spktemp,Whidx))/Whlength;
-%         end
-%         Interneurons{nData,i}=IsInt;
-%         valLst(i, nData) =  length(FrateMz{nData,i});
-%         valLst(i, nData+2) =  length(FrateWh{nData,i});
-%     end
-% end
 
 mzRate = {};
 whRate = {};

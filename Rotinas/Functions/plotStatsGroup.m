@@ -1,5 +1,5 @@
 
-function plotStats( leftData, rightData, dt, nData, toTitle, lLabel, rLabel, f, yInf, ySup)
+function plotStatsGroup( leftData, rightData, dt, nData, toTitle, lLabel, rLabel, f, yInf, ySup)
 %     left = sum(leftData(dt, :), 1);
 %     right = sum(rightData(dt, :), 1);
     
