@@ -1,31 +1,26 @@
 
-function plotStatsGroup( leftData, rightData, dt, nData, toTitle, lLabel, rLabel, f, yInf, ySup)
-    
+function plotStatsGroupPPower( leftData, rightData, dt, nData, toTitle, lLabel, rLabel, f, yInf, ySup)
     % Max power
     [maxLeft, idxMz] = max(leftData(dt, :));
     [maxRight, idxWh] = max(rightData(dt, :));
-
-    peakLeft = f(dt(idxMz));
-    peakRight = f(dt(idxWh));
  
-    left = peakLeft';
-    right = peakRight';
+    left = maxLeft;
+    right = maxRight;
     % Error
     errL = std(left)/sqrt(length(left));
     errR = std(right)/sqrt(length(right));
     
-%     [ht, pt, hr, pr] = calcStats(maxLeft, maxRight, normFactor);
+    normFactor = mean([left; right]);
+    
+    [ht, pt, hr, pr] = calcStats(maxLeft, maxRight, normFactor);
     
     % Plot
     subplot(2,3,nData)
-    plot([1,2], [left',right'], '.-')
+    boxplot([left', right'],'Labels',{lLabel,rLabel})
     hold on
-%     bar(1, mean(left), 'FaceColor', 'none')
-%     bar(2, mean(right), 'FaceColor', 'none')
-    errorbar([1,2], [median(left), median(right)], [errL, errR])
-    xlim([0.5,2.5]);
-    ylim([yInf, ySup]);
-    xticklabels({'', lLabel, '', rLabel})
+    ylabel('Peak Power');
+    xlabel(sprintf('Ttest - H: %.1f P:%.4f RankSum - H: %.1f P:%.4f', ht, pt, hr, pr))
+%     ttl = sprintf('%s\n Ttest - H: %.1f P:%.4f RankSum - H: %.1f P:%.4f', toTitle, ht, pt, hr, pr); 
     title(toTitle)
     % Aesthetics
     set(gca, ...

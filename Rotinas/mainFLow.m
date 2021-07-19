@@ -23,7 +23,7 @@ dbPathTwo = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/dryad/Wang_et_al_eLife20
 filePaths = [dbPathOne; dbPathTwo];
 % Number of directories
 [numDir, ~ ] = size(filePaths);
-% A list that store the number of files in each directory
+% A list that store the number of files in each directory 
 dataLineCount = zeros(1, size(filePaths, 1));
 % Load files
 for i=1:numDir
@@ -89,7 +89,8 @@ file = char(strcat(savePath, 'preProcessed.mat'));
 load(file)
 sprintf('Loaded file - Pre processed')
 %% Auto Save 
-% 
+% Process and save all files automatically
+
 % fileNames= ["DeltaProcessed.mat","ThetaProcessed.mat","PwelchProcessed.mat"];
 % 
 % for nm=1:size(fileNames,2)
@@ -279,7 +280,7 @@ for nData=1:numReads
     end
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
-%% 3.2.2 - Group Point plot
+%% 3.2.2a - Group Point plot - Peak Frequency
 % clf
 save = 0;
 pMzPre = [];
@@ -325,20 +326,7 @@ for nData=1:3
             pMzTemp = {pMzPre, pMzPos};
             pWhTemp = {pWhPre, pWhPos};
             ttl = strcat('Group Peak',{' - '}, tittleLines(nData, :), sprintf(' || Bands: %i - %i Hz', bands(i,1),bands(i,2)));
-            plotStatsGroup(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel', f, bands(i,1),bands(i,2))
-            
-            [maxLeft, idxMz] = max(pMzTemp{nData}(dt, :));
-            [maxRight, idxWh] = max(pWhTemp{nData}(dt, :));
-
-            peakLeft = f(dt(idxMz));
-            peakRight = f(dt(idxWh));
-
-            left = maxLeft;
-            right = maxRight;
-            % Error
-            errL = std(left)/sqrt(size(left,1));
-            errR = std(right)/sqrt(size(right,1));
-                       
+            plotStatsGroup(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel', f, bands(i,1),bands(i,2))                         
         end
         if save
             fileName = char(strcat(savePath, 'Group_PEAK_', sprintf('%i_%i_Hz', bands(i,1),bands(i,2))));
@@ -351,7 +339,7 @@ clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath 
 %% 3.2.2b - Individual point plot
 
 % clf
-save = 1;
+save = 0;
 f = dataFull{1,1}.Pwelch.F;
 bands = [3,5; 6,10];
 tittleLines = ['Pre Mz x Pre Wh'; 'Pos Mz x Pos Wh'; 'Pre Mz x Pos Mz'; 'Pre Wh x Pos Wh'; 'Pre Mz x Pos Wh'];
@@ -396,15 +384,27 @@ for nData=1:size(tittleLines, 1)
             [maxLeft, idxMz] = max(leftData(dt, :));
             [maxRight, idxWh] = max(rightData(dt, :));
 
-            peakLeft = f(dt(idxMz));
-            peakRight = f(dt(idxWh));
-
             subplot(2,5,j)
-            bar([1,2], [peakLeft, peakRight], 'FaceColor', 'none')
+            bar([1,2], [maxLeft, maxRight], 'FaceColor', 'none')
             xlim([0.5,2.5]);
-            ylim([bands(i,1), bands(i,2)]);
             xticklabels(xlabel)
-            title(sprintf('%s: %i Hz - %i Hz (%s)', dataFull{1,j}.Name(1:13), bands(i, 1), bands(i,2), moment))
+            title(sprintf('%s:\n%i Hz - %i Hz (%s)', dataFull{1,j}.Name(1:13), bands(i, 1), bands(i,2), moment))
+            % Aesthetics
+            set(gca, ...
+            'Box',      'off',...
+            'FontName', 'Helvetica',...
+            'TickDir',  'out', ...
+            'TickLength', [.02 .02],...
+            'YGrid',     'on',...
+            'GridLineStyle', '-.',...
+            'XColor',    [.3 .3 .3],...
+            'YColor',    [.3 .3 .3],...
+            'LineWidth', 1,...
+            'FontSize', 8, ...
+            'FontWeight', 'bold',...
+            'TitleFontSizeMultiplier', 1.6,...
+            'LabelFontSizeMultiplier', 1.4,...
+            'XScale', 'linear') 
         end
         if save
             fileName = char(strcat(savePath, 'Indiv_PEAK_', sprintf('Combined_%i_%i_Hz_%i', bands(i,1),bands(i,2), nData)));
@@ -413,7 +413,62 @@ for nData=1:size(tittleLines, 1)
         end
     end
 end
-clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
+% clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath pMzPre pWhPre pMzPos pWhPos
+%% 3.2.2c - Group Point plot - Peak Power
+% clf
+save = 0;
+pMzPre = [];
+pWhPre = [];
+pMzPos = [];
+pWhPos = [];
+for nData=1:numReads
+    for i=1:dataLineCount(nData)
+        
+        if nData == 1
+            pMzPre = [pMzPre, dataFull{nData,i}.Pwelch.Px_mz];
+            pWhPre = [pWhPre, dataFull{nData,i}.Pwelch.Px_wh];
+        else
+            pMzPos = [pMzPos, dataFull{nData,i}.Pwelch.Px_mz];
+            pWhPos = [pWhPos, dataFull{nData,i}.Pwelch.Px_wh];
+        end
+    end
+ 
+end
+
+f = dataFull{1,1}.Pwelch.F;
+bands = [3,5; 6,10; 35,55; 65,110; 150,250];
+tittleLines = ['Pre Mz x Pre Wh'; 'Pos Mz x Pos Wh'; 'Pre Mz x Pos Mz'; 'Pre Wh x Pos Wh'; 'Pre Mz x Pos Wh'];
+for nData=1:3
+    for i=1:size(bands, 1)
+        dt = find( f> bands(i,1) & f <bands(i,2));
+        fig = figure(i);
+        fig.Position = [1 1 1900 1000];
+        if nData == 3
+            
+            % Pre x Pos Mz
+            ttl = sprintf('Group Peak Power\n%s || Bands: %i - %i Hz', tittleLines(3, :), bands(i,1),bands(i,2));
+            plotStatsGroupPPower(pWhPos,pMzPos,dt, 3, ttl, 'Maze Pre', 'Maze Pos', f, bands(i,1),bands(i,2))
+            
+            % Pre x Pos wh
+            ttl = sprintf('Group Peak Power\n%s || Bands: %i - %i Hz', tittleLines(4, :), bands(i,1),bands(i,2));
+            plotStatsGroupPPower(pWhPre,pWhPos,dt, 4, ttl, 'Wheel Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
+           
+            % Pre Mz x Pos wh
+            ttl = sprintf('Group Peak Power\n%s || Bands: %i - %i Hz', tittleLines(5, :), bands(i,1),bands(i,2));
+            plotStatsGroupPPower(pMzPre,pWhPos,dt, 5, ttl, 'Maze Pre', 'Wheel Pos', f, bands(i,1),bands(i,2))
+        else
+            pMzTemp = {pMzPre, pMzPos};
+            pWhTemp = {pWhPre, pWhPos};
+            ttl = sprintf('Group Peak Power\n%s || Bands: %i - %i Hz', tittleLines(nData, :), bands(i,1),bands(i,2));
+            plotStatsGroupPPower(pMzTemp{nData},pWhTemp{nData},dt, nData, ttl, 'Maze', 'Wheel', f, bands(i,1),bands(i,2))             
+        end
+        if save
+            fileName = char(strcat(savePath, 'Group_PEAK_POWER_', sprintf('%i_%i_Hz', bands(i,1),bands(i,2))));
+            saveas(fig,fileName, 'epsc');
+            saveas(fig,fileName, 'png');
+        end
+    end
+end
 %% 3.2.3 - Individual PSD
 save = 0;
 for nData=1:numReads
