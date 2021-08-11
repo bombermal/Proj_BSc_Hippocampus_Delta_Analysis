@@ -42,6 +42,7 @@ for i=1:numDir
         trackNames(find(strcmp(trackNames, 'eeg'))) = [];
         trackNames(find(strcmp(trackNames, 'speed_MMsec'))) = [];
         trackNames(find(strcmp(trackNames, 'lapID'))) = [];
+        trackNames(find(strcmp(trackNames, 'corrChoice'))) = [];
         lapsNames = fieldnames(dataFull{i,j}.Laps);
         lapsNames(find(strcmp(lapsNames, 'WhlSpeedCCW'))) = [];
         lapsNames(find(strcmp(lapsNames, 'WhlSpeedCW'))) = [];
@@ -92,7 +93,8 @@ sprintf('Loaded file - Pre processed')
 % Process and save all files automatically
 
 % fileNames= ["DeltaProcessed.mat","ThetaProcessed.mat","PwelchProcessed.mat"];
-% 
+% wSpeed = 100;
+% mSpeed = 100;
 % for nm=1:size(fileNames,2)
 %     %Load
 %     clearvars -except fileNames nm
@@ -115,7 +117,7 @@ sprintf('Loaded file - Pre processed')
 %     [numReads, numSubReads ] = size(dataFull);
 %     for nData=1:numReads
 %         for i=1:dataLineCount(nData)
-%             dataFull{nData,i} = fillStruct(dt, srate, WindowLength, Overlap, NFFT, dataFull{nData,i}, aux(1), aux(2), aux(3));
+%             dataFull{nData,i} = fillStruct(dt, srate, WindowLength, Overlap, NFFT, dataFull{nData,i}, wSpeed, mSpeed, aux(1), aux(2), aux(3));
 %             sprintf('%d %d',nData, i)
 %         end
 %     end
@@ -139,8 +141,13 @@ NFFT         = 2^13;
 
 [numReads, numSubReads ] = size(dataFull);
 for nData=1:numReads
-    for i=1:dataLineCount(nData)
-        dataFull{nData,i} = fillStruct(dt, srate, WindowLength, Overlap, NFFT, dataFull{nData,i}, 1, 0, 0);
+    for i=1:dataLineCount(nData)                                                           % whlSpeed, mzSpeed, delta, theta, pwelch  
+        % Pre x Pos   
+        key = "Pre";
+        if nData == 2
+            key = "Pos";
+        end
+        dataFull{nData,i} = fillStruct(key, srate, WindowLength, Overlap, NFFT, dataFull{nData,i}, 100, 100);
         sprintf('%d %d',nData, i)
     end
 end
@@ -148,7 +155,7 @@ clearvars -except dataFull srate dt dataLineCount numReads numSubReads
 %% Process file
 % 2.1 - Save loaded files
 % savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/';
-file = char(strcat(savePath, 'DeltaProcessed.mat'));
+file = char(strcat(savePath, 'PwelchProcessed.mat'));
 
 % save(file, '-v7.3')
 %% Load processed file
@@ -196,7 +203,7 @@ end
 
 % 3.1.2 - Group t-Test and RankSum
 f = dataFull{1,1}.Pwelch.F;
-bands = [3,5; 6,10; 35,55; 65,110; 150,250];
+bands = [3,5; 6,10]%; 35,55; 65,110; 150,250];
 filesNames = ["Group_mz_x_wh_pre_pre.txt", "Group_mz_x_wh_pos_pos.txt", "Group_mz_x_mz_n_wh_x_wh_pre_pos.txt"];
 tittleLines = ["Group Maze x Wheel -> Pre x Pre - Ttest and RankSum", "Group Maze x Wheel -> Pos x Pos - Ttest and RankSum", "Group Maze x Wheel -> Pre x Pos - Ttest and RankSum" ];
 for nData=1:size(filesNames, 2)
@@ -211,21 +218,21 @@ for nData=1:size(filesNames, 2)
         dt = find( f> bands(i,1) & f <bands(i,2));
         if nData ==3
             % Pre x Pos Mz
-            [perc, power, peak] = printStats(pMzPre, pMzPos, dt, bands, i, f,'Pre x Pos Mz');
+            [perc, power, peak] = printStats(pMzPre, pMzPos, dt, bands, i, f,'Pre x Pos Mz', 1);
             pppSave(perc, power, peak, save, fileID);
             
             % Pre x Pos wh
-            [perc, power, peak] = printStats(pWhPre, pWhPos, dt, bands, i, f,'Pre x Pos wh');
+            [perc, power, peak] = printStats(pWhPre, pWhPos, dt, bands, i, f,'Pre x Pos wh', 1);
             pppSave(perc, power, peak, save, fileID);
             
             % Pre Mz x Pos wh
-            [perc, power, peak] = printStats(pMzPre, pWhPos, dt, bands, i, f, 'Pre Mz x Pos Wh');
+            [perc, power, peak] = printStats(pMzPre, pWhPos, dt, bands, i, f, 'Pre Mz x Pos Wh', 1);
             pppSave(perc, power, peak, save, fileID);
         else
             pMzTemp = {pMzPre, pMzPos};
             pWhTemp = {pWhPre, pWhPos};
             ex = {'Pre Mz x Pre Wh', 'Pos Mz x Pos Wh'};
-            [perc, power, peak] = printStats(pMzTemp{nData}, pWhTemp{nData}, dt, bands, i, f, ex{nData});
+            [perc, power, peak] = printStats(pMzTemp{nData}, pWhTemp{nData}, dt, bands, i, f, ex{nData}, 1);
             pppSave(perc, power, peak, save, fileID);
         end
     end

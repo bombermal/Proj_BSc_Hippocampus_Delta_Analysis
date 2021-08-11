@@ -18,6 +18,7 @@ function plotStatsGroupPPower( leftData, rightData, dt, nData, toTitle, lLabel, 
     subplot(2,3,nData)
     boxplot([left', right'],'Labels',{lLabel,rLabel})
     hold on
+    plot([1,2], [left',right'], '.')
     ylabel('Peak Power');
     xlabel(sprintf('Ttest - H: %.1f P:%.4f RankSum - H: %.1f P:%.4f', ht, pt, hr, pr))
 %     ttl = sprintf('%s\n Ttest - H: %.1f P:%.4f RankSum - H: %.1f P:%.4f', toTitle, ht, pt, hr, pr); 
