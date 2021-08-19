@@ -337,9 +337,12 @@ for nData=1:numReads
     fig.Position = [1 1 1600 1000];
     subplot(2,2,1)
     plot(mzS, mzP, 'k.')
+    [r, p] = corr(mzS,mzP);
     xlabel('Speed')
     ylabel('Max Power')
-    title('Maze Max Power')
+    title(sprintf('Maze Max Power\nMaze R: %.4f P: %.4f', r, p))
+%     label1{1} = sprintf('Maze R: %.4f P: %.4f', r, p);
+%     legend(label1,'location','bestoutside','orientation','horizontal')
     % Aesthetics
     set(gca, ...
         'Box',      'off',...
@@ -355,12 +358,14 @@ for nData=1:numReads
         'FontWeight', 'bold',...
         'TitleFontSizeMultiplier', 1.6,...
         'LabelFontSizeMultiplier', 1.4,...
-        'XScale', 'linear') 
+        'XScale', 'linear')
+    
     subplot(2,2,2)
     plot(whS, whP, 'r.')
+    [r, p] = corr(whS,whP);
     xlabel('Speed')
     ylabel('Max Power')
-    title('Wheel Max Power')
+    title(sprintf('Wheel Max Power\nMaze R: %.4f P: %.4f', r, p))
     % Aesthetics
     set(gca, ...
         'Box',      'off',...
@@ -380,9 +385,10 @@ for nData=1:numReads
     
     subplot(2,2,3)
     plot(mzS, mzF, 'k.')
+    [r, p] = corr(mzS,mzF);
     xlabel('Speed')
     ylabel('Max Frequency')
-    title('Maze Max Frequency')
+    title(sprintf('Maze Max Frequency\nMaze R: %.4f P: %.4f', r, p))
     % Aesthetics
     set(gca, ...
         'Box',      'off',...
@@ -399,11 +405,13 @@ for nData=1:numReads
         'TitleFontSizeMultiplier', 1.6,...
         'LabelFontSizeMultiplier', 1.4,...
         'XScale', 'linear') 
+    
     subplot(2,2,4)
     plot(whS, whF, 'r.')
+    [r, p] = corr(whS,whF);
     xlabel('Speed')
     ylabel('Max Frequency')
-    title('Wheel Max Frequency')
+    title(sprintf('Wheel Max Frequency\nMaze R: %.4f P: %.4f', r, p))
     % Aesthetics
     set(gca, ...
         'Box',      'off',...
@@ -426,8 +434,51 @@ for nData=1:numReads
         saveas(fig,fileName, 'png');
     end
 end
+% clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath
+%% 3.2.2 - Max Power and Max Frequency analytics - All_Trials_Rank_n_Ttest
+
+mzPreFreq = struct('List', [], 'Name', 'Frequency', 'Key', 'Pre', 'Job', 'Mz');
+mzPrePowe = struct('List', [], 'Name', 'Power', 'Key', 'Pre', 'Job', 'Mz');
+whPreFreq = struct('List', [], 'Name', 'Frequency', 'Key', 'Pre', 'Job', 'Wh');
+whPrePowe = struct('List', [], 'Name', 'Power', 'Key', 'Pre', 'Job', 'Wh');
+mzPosFreq = struct('List', [], 'Name', 'Frequency', 'Key', 'Pos', 'Job', 'Mz');
+mzPosPowe = struct('List', [], 'Name', 'Power', 'Key', 'Pos', 'Job', 'Mz');
+whPosFreq = struct('List', [], 'Name', 'Frequency', 'Key', 'Pos', 'Job', 'Wh');
+whPosPowe = struct('List', [], 'Name', 'Power', 'Key', 'Pos', 'Job', 'Wh');
+
+for i=1:dataLineCount(1)
+    mzPreFreq.List = [mzPreFreq.List; data{1}(i).Mz.MaxFreq];
+    mzPrePowe.List = [mzPrePowe.List; data{1}(i).Mz.MaxPower];
+    whPreFreq.List = [whPreFreq.List; data{1}(i).Wh.MaxFreq];
+    whPrePowe.List = [whPrePowe.List; data{1}(i).Wh.MaxPower];
+    mzPosFreq.List = [mzPosFreq.List; data{2}(i).Mz.MaxFreq];
+    mzPosPowe.List = [mzPosPowe.List; data{2}(i).Mz.MaxPower];
+    whPosFreq.List = [whPosFreq.List; data{2}(i).Wh.MaxFreq];
+    whPosPowe.List = [whPosPowe.List; data{2}(i).Wh.MaxPower];
+end
+
+combined = nchoosek({mzPreFreq, mzPrePowe, whPreFreq, whPrePowe, ...
+    mzPosFreq, mzPosPowe, whPosFreq, whPosPowe}, 2);
+
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
+save = 0;
+if save
+    fileID = fopen(strcat(savePath,'All_Trials_Rank_n_Ttest.txt'), 'w');
+else
+    fileID = '';
+end
+for i=1:size(combined,1)
+    left = combined{i,1};
+    right = combined{i,2};
+    aux = sprintf('Max %s x Mx %s - %s x %s - %s x %s', left.Name, right.Name, left.Key, right.Key, left.Job, right.Job);
+    perc = printStats(left.List, right.List, [3,5], aux);
+    pppSave(perc, 0, 0, save, fileID);
+end
+if save
+    fclose(fileID)
+end
 clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath
-%% 3.2.2 - Group PSD - Composed by mean psd for all trials in each animal
+%% 3.2.3 - Group PSD - Composed by mean psd for all trials in each animal
 save = 0;
 
 data = {struct('Mz', [], 'Wh', [], 'Freq', []), struct('Mz', [], 'Wh', [], 'Freq', [])}; 
@@ -500,7 +551,7 @@ if save
 end
 
 clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath
-%% 3.2.3 - Group PSD + std
+%% 3.2.4 - Group PSD + std
 clf
 save = 0;
 
