@@ -1,6 +1,6 @@
 function data = fillStruct(key, srate, WindowLength, Overlap, NFFT, data, wSpeed, mSpeed)
     jobList = ["Mz", "Wh"];
-    %LFP
+    % Lap
     lap = data.Track.lapID;
 
     freAux = [];
@@ -8,6 +8,9 @@ function data = fillStruct(key, srate, WindowLength, Overlap, NFFT, data, wSpeed
     choAux = [];
     lapAux = [];
     jobAux = [];
+    mzSAux = [];
+    whSAux = [];
+    
     lapUnique = unique(lap);
     for lp=1:length(lapUnique)
         if lapUnique(lp) ~= 0
@@ -15,8 +18,12 @@ function data = fillStruct(key, srate, WindowLength, Overlap, NFFT, data, wSpeed
             for jb=1:length(jobList)
                 if jobList(jb) == "Mz"
                     speedMask = data.Track.speed_MMsec(lapMask) > mSpeed;
+                    mzAux = mean(find(speedMask));
+                    whAux = 0;
                 else
                     speedMask = (data.Laps.WhlSpeedCW(lapMask) + data.Laps.WhlSpeedCCW(lapMask)) > wSpeed;
+                    mzAux = 0;
+                    whAux = mean(find(speedMask));
                 end
 
                 cChoice = data.Track.corrChoice(lapMask);
@@ -26,9 +33,11 @@ function data = fillStruct(key, srate, WindowLength, Overlap, NFFT, data, wSpeed
                 freAux = [freAux; frq];
                 psdAux = [psdAux; psd];
                 lapAux = [lapAux; repmat(lp,length(frq),1)];      
-                jobAux = [jobAux; repmat(jb,length(frq),1)];            
+                jobAux = [jobAux; repmat(jobList(jb),length(frq),1)];            
                 choAux = [choAux; repmat(mean(cChoice(speedMask)),length(frq),1)];
-
+                mzSAux = [mzSAux; repmat(mzAux,length(frq),1)];
+                whSAux = [whSAux; repmat(whAux,length(frq),1)];
+                
             end
         end
     end
@@ -40,5 +49,6 @@ function data = fillStruct(key, srate, WindowLength, Overlap, NFFT, data, wSpeed
     data.Pwelch.Choice = choAux;
     data.Pwelch.Job = jobAux;
     data.Pwelch.Animal = repmat(data.Name(1:13),length(freAux),1);
-   
+    data.Pwelch.MzSpeedMean = mzSAux;
+    data.Pwelch.WhSpeedMean = whSAux;
 end
