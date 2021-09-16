@@ -27,15 +27,16 @@ WindowLength = 1*srate;
 Overlap      = 0.9*srate;
 NFFT         = 2^13;
 
-order = [0,0; 1,0; 0,1];
-tittles = ["Pwelch", "Delta", "Theta"];
+order = [0; 1];
+tittles = "All_Combined";
 wSpeed = 100;
 mSpeed = 100;
 
 savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/Single Files/';
 
+processFiles = 0;
 % Load files
-for idx=2:3
+if processFiles
     for i=1:size(filePaths,1)
         % List all files in each directory
         absolutFilePath = ls(fullfile(filePaths(i,1:end), '*.mat'));
@@ -52,8 +53,8 @@ for idx=2:3
             trackNames(find(strcmp(trackNames, 'lapID'))) = [];
             trackNames(find(strcmp(trackNames, 'corrChoice'))) = [];
             lapsNames = fieldnames(dataSingle.Laps);
-            lapsNames(find(strcmp(lapsNames, 'WhlSpeedCCW'))) = [];
             lapsNames(find(strcmp(lapsNames, 'WhlSpeedCW'))) = [];
+            lapsNames(find(strcmp(lapsNames, 'NLapCW'))) = [];
             spikeNames = fieldnames(dataSingle.Spike);
             spikeNames(find(strcmp(spikeNames, 'totclu'))) = [];
             spikeNames(find(strcmp(spikeNames, 'speed_MMsec'))) = [];
@@ -73,33 +74,33 @@ for idx=2:3
             dataSingle = filterLFP(dataSingle, srate);
 
             % Process
-            delta = order(idx, 1);
-            theta = order(idx, 2);
-            dataSingle = fillStruct(srate, WindowLength, Overlap, NFFT, dataSingle, wSpeed, mSpeed, delta, theta);
+            dataSingle = fillStruct(srate, WindowLength, Overlap, NFFT, dataSingle, wSpeed, mSpeed);
 
-            names = fieldnames(dataSingle);
-            names(find(strcmp(names, 'Pwelch'))) = [];
-            names(find(strcmp(names, 'Band'))) = [];
-            names(find(strcmp(names, 'Spike'))) = [];
-            names(find(strcmp(names, 'Name'))) = [];
-            dataSingle = rmfield(dataSingle,names);
-
+            Spike = dataSingle.Spike;
+            Name = dataSingle.Name;
+            Clu = dataSingle.Clu;  
+            Lfp = dataSingle.Lfp;
+            Delta = dataSingle.Delta;
+            Theta = dataSingle.Theta;
+            Choice = dataSingle.Choice;
+            Speed = dataSingle.Speed;
+            Pwelch = dataSingle.Pwelch;
             % Save
-            % Save Path
             mmtTtl = 'Pre';
             if i == 2
                 mmtTtl = 'Pos';
             end
-            sessionName = dataSingle.Name;
-            
-            file = sprintf('%s%s/%s/%s.mat', savePath, tittles(idx), mmtTtl, sessionName);
-            save(file, 'dataSingle', '-v7.3')
-            toc
+
+            file = sprintf('%s%s/%s/%s.mat', savePath, tittles, mmtTtl, Name);
+            save(file, 'Clu', 'Spike', 'Name', 'Pwelch', 'Lfp', 'Delta', 'Theta', ...
+               'Choice', 'Speed', '-v7.3')  
+
+
             sprintf('Dir: %d, File: %d', i, j)
         end
     end
 end
-
+% clearvars -except srate dt Band Clu Name Spike
 %% Load processed file
 % 2.0 - Load file
 tic
@@ -113,8 +114,8 @@ srate=1250;
 dt=1/srate;
 
 rootPath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/Single Files/';
-subPath = ["Pwelch", "Delta", "Theta"];
-idx = 2;
+subPath = ["All_Combined"];
+idx = 1;
 loadPath = sprintf('%s%s/', rootPath, subPath(idx));
 
 % Load files
@@ -124,7 +125,7 @@ absolutFilePath = ls(fullfile(sprintf('%sPre/', loadPath), '*.mat'));
 for file=1:size(absolutFilePath, 1)
     fileName = absolutFilePath(file, :);
     dataFull{1, file} = load(strcat(loadPath, 'Pre\', fileName));
-    dataFull{1, file} = dataFull{1, file}.dataSingle;
+%     dataFull{1, file} = dataFull{1, file}.dataSingle;
     sprintf('%s - Pre - File: %d', subPath(idx), file)
 end
 % Load Pos
@@ -132,7 +133,7 @@ absolutFilePath = ls(fullfile(sprintf('%sPos/', loadPath), '*.mat'));
 for file=1:size(absolutFilePath, 1)
     fileName = absolutFilePath(file, :);
     dataFull{2, file} = load(strcat(loadPath, 'Pos\', fileName));
-    dataFull{2, file} = dataFull{2, file}.dataSingle;
+%     dataFull{2, file} = dataFull{2, file}.dataSingle;
     sprintf('%s - Pos - File: %d', subPath(idx), file)
 end
 [numReads, numSubReads ] = size(dataFull);
@@ -162,33 +163,29 @@ for nData=1:numReads
     end
     sprintf('%s', key)
     
+    if save
+        fprintf(fileID, '\n');
+    end
+    
     for i=1:numSubReads
         
         dataTemp = dataFull{nData, i};
-        lap = dataTemp.Pwelch.Lap;
-        uniqueLap = unique(lap);
+        choice = dataTemp.Choice;
         
-        aux = zeros(length(uniqueLap), 1);
-        for lp=1:length(uniqueLap)
-            lapMask = lap == uniqueLap(lp);
-            cChoice = dataTemp.Pwelch.Choice(lapMask);
-            aux(lp) = cChoice(1, 1);
-        end
+        [count, value] = groupcounts(choice);
         
-        [count, value] = groupcounts(aux);
-
         if length(value) == 1
             if value == 0
-                count(2) = 0;
-                value(2) = 1;
+                count = [count, 0];
+                value = [value, 1];
             else
                 count = [0, count];
                 value = [0, value];
             end
         end
-                
         err = (count(1)/sum(count))*100;
         hit = (count(2)/sum(count))*100;
+        
         temp = sprintf('%s: Hits Freq: %i/%i = %.2f - Miss Freq: %i/%i = %.2f\n', dataTemp.Name(1:13), count(2), sum(count), hit, count(1), sum(count), err)
         fprintf(fileID, temp);
         prop{nData}.Hit = [prop{nData}.Hit; hit];
@@ -206,6 +203,7 @@ savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/Projeto
 
 save = 0;
 fig = figure(1);
+fig.Position = [1 1 1600 1000];
 boxplot([prop{1}.Hit, prop{2}.Hit, prop{1}.Err, prop{2}.Err] )
 
 xticklabels(["Hits","Hits","Miss","Miss"])
@@ -251,16 +249,18 @@ for nData=1:numReads
     pMiss = [];
     for i=1:numSubReads
         dataTemp = dataFull{nData, i}.Pwelch;
-        fMask = (dataTemp.Frequency >= bands(1)) & (dataTemp.Frequency <= bands(2) );
-        rMask = dataTemp.Choice == 1;
+        fCols = (dataTemp.Frequency >= bands(1)) & (dataTemp.Frequency <= bands(2) );
+        cTrials = logical(dataTemp.Choice);
+   
+        auxHitMz = dataTemp.Psd.Mz(cTrials, fCols);
+        auxMisMz = dataTemp.Psd.Mz(~cTrials, fCols);
+        auxHitWh = dataTemp.Psd.Wh(cTrials, fCols);
+        auxMisWh = dataTemp.Psd.Wh(~cTrials, fCols);
+        pHits = [pHits, reshape(auxHitMz, [1, prod(size(auxHitMz))])];
+        pMiss = [pMiss, reshape(auxMisMz, [1, prod(size(auxMisMz))])];
+        pHits = [pHits, reshape(auxHitWh, [1, prod(size(auxHitWh))])];
+        pMiss = [pMiss, reshape(auxMisWh, [1, prod(size(auxMisWh))])];
 
-        if nData == 1
-            pHits = [pHits; dataTemp.Psd(fMask & rMask)];
-            pMiss = [pMiss; dataTemp.Psd(fMask & ~rMask)];
-        else
-            pHits = [pHits; dataTemp.Psd(fMask & rMask)];
-            pMiss = [pMiss; dataTemp.Psd(fMask & ~rMask)];
-        end
     end
     key = "Pre";
     if nData == 2
@@ -268,7 +268,6 @@ for nData=1:numReads
     end
     perc = printStats(pHits, pMiss, bands,strcat(key, ' - Hits x Miss'));
     pppSave(perc, save, fileID);
-
 
 end
 if save
@@ -278,8 +277,8 @@ clearvars -except dataFull data srate dt numReads numSubReads savePath
 %% 3.1.3 Process Max power, max freq, speed
 % Create a structure and save all values in
 
-lOne = struct("MaxPower", [], "MaxFreq", [], "Speed", [], "Choice", []);
-lTwo = struct("Wh", lOne, "Mz", lOne);
+lOne = struct("Wh", [], "Mz", []);
+lTwo = struct("MaxPower", lOne, "MaxFreq", lOne, "Speed", lOne, "Choice", []);
 lThr = repmat(lTwo, 10,1);
 data = {lThr, lThr};
 
@@ -293,40 +292,26 @@ for nData=1:numReads
     for i=1:numSubReads
         dataTemp = dataFull{nData, i}.Pwelch;
         fMask = (dataTemp.Frequency >= bands(1)) & (dataTemp.Frequency <= bands(2) );
-        jobMask = dataTemp.Job == 'Mz';
         
-        lap = dataTemp.Lap;
-        uniqueLap = unique(lap);
-        
-        for lp=1:length(uniqueLap)
-            lapMask = dataTemp.Lap == uniqueLap(lp);
-            speedMz = mean(dataTemp.MzSpeedMean(lapMask));
-            speedWh = mean(dataTemp.WhSpeedMean(lapMask));
- 
-            mzFreq = dataTemp.Frequency(fMask & lapMask & jobMask);
-            [mzVal, mzIdx] = max(dataTemp.Psd(fMask & lapMask & jobMask));
-            
-            data{nData}(i).Mz.MaxPower = [data{nData}(i).Mz.MaxPower; mzVal];        
-            data{nData}(i).Mz.MaxFreq = [data{nData}(i).Mz.MaxFreq; mzFreq(mzIdx)];           
-            data{nData}(i).Mz.Speed = [data{nData}(i).Mz.Speed; speedMz];           
-            choice = dataTemp.Choice(lapMask);
-            data{nData}(i).Mz.Choice = [data{nData}(i).Mz.Choice; choice(1)];      
-            
-            whFreq = dataTemp.Frequency(fMask & lapMask & ~jobMask);
-            [whVal, whIdx] = max(dataTemp.Psd(fMask & lapMask & ~jobMask));
-            
-            data{nData}(i).Wh.MaxPower = [data{nData}(i).Wh.MaxPower; whVal];        
-            data{nData}(i).Wh.MaxFreq = [data{nData}(i).Wh.MaxFreq; whFreq(whIdx)];           
-            data{nData}(i).Wh.Speed = [data{nData}(i).Wh.Speed; speedWh];           
-            choice = dataTemp.Choice(lapMask);
-            data{nData}(i).Wh.Choice = [data{nData}(i).Wh.Choice; choice(1)];  
-        end
+        speedMz = dataTemp.Speed.Mz;
+        speedWh = dataTemp.Speed.Wh;
 
+        [mzVal, mzIdx] = max(dataTemp.Psd.Mz(:, fMask)');
+                
+        data{nData}(i).MaxPower.Mz = mzVal';        
+        data{nData}(i).MaxFreq.Mz = dataTemp.Frequency(mzIdx)';           
+        data{nData}(i).Speed.Mz = speedMz;               
+        data{nData}(i).Choice = dataTemp.Choice;               
+
+        [whVal, whIdx] = max(dataTemp.Psd.Wh(:, fMask)');
+
+        data{nData}(i).MaxPower.Wh = whVal';        
+        data{nData}(i).MaxFreq.Wh = dataTemp.Frequency(whIdx)';           
+        data{nData}(i).Speed.Wh = speedWh;        
     end
-
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.2.1 - Plot max power, max freq and speed
+%% 3.1.4 - Plot max power, max freq and speed
 clf
 whS = [];
 whP = [];
@@ -335,6 +320,7 @@ mzS = [];
 mzP = [];
 mzF = [];
 save = 0;
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Max Power and Frequency/';
 for chc=0:1
     ttl = "Wrong choice";
     if chc
@@ -344,15 +330,14 @@ for chc=0:1
     for nData=1:numReads
         for i=1:numSubReads
         % Mask
-        cMaskMz = data{nData}(i).Mz.Choice == chc;
-        cMaskWh = data{nData}(i).Wh.Choice == chc;
+        cMask = data{nData}(i).Choice == chc;
         
-        whS = [whS; data{nData}(i).Wh.Speed(cMaskWh)];
-        whP = [whP; data{nData}(i).Wh.MaxPower(cMaskWh)];
-        whF = [whF; data{nData}(i).Wh.MaxFreq(cMaskWh)];
-        mzS = [mzS; data{nData}(i).Mz.Speed(cMaskMz)];
-        mzP = [mzP; data{nData}(i).Mz.MaxPower(cMaskMz)];
-        mzF = [mzF; data{nData}(i).Mz.MaxFreq(cMaskMz)];
+        whS = [whS; data{nData}(i).Speed.Wh(cMask)];
+        whP = [whP; data{nData}(i).MaxPower.Wh(cMask)];
+        whF = [whF; data{nData}(i).MaxFreq.Wh(cMask)];
+        mzS = [mzS; data{nData}(i).Speed.Mz(cMask)];
+        mzP = [mzP; data{nData}(i).MaxPower.Mz(cMask)];
+        mzF = [mzF; data{nData}(i).MaxFreq.Mz(cMask)];
 
         end
         % Pre x Pos   
@@ -381,7 +366,7 @@ for chc=0:1
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.2.2 - Max Power and Max Frequency analytics - All_Trials_Rank_n_Ttest
+%% 3.1.5 - Max Power and Max Frequency analytics - All_Trials_Rank_n_Ttest
 save = 0;
 for chc=0:1
     mzPreFreq = struct('List', [], 'Name', 'Frequency', 'Key', 'Pre', 'Job', 'Mz');
@@ -395,19 +380,17 @@ for chc=0:1
 
     for i=1:numSubReads
         % Mask
-        preCMaskMz = data{1}(i).Mz.Choice == chc;
-        preCMaskWh = data{1}(i).Wh.Choice == chc;
-        posCMaskMz = data{2}(i).Mz.Choice == chc;
-        posCMaskWh = data{2}(i).Wh.Choice == chc;
+        preCMask = data{1}(i).Choice == chc;
+        posCMask = data{2}(i).Choice == chc;
         
-        mzPreFreq.List = [mzPreFreq.List; data{1}(i).Mz.MaxFreq(preCMaskMz)];
-        mzPrePowe.List = [mzPrePowe.List; data{1}(i).Mz.MaxPower(preCMaskMz)];
-        whPreFreq.List = [whPreFreq.List; data{1}(i).Wh.MaxFreq(preCMaskWh)];
-        whPrePowe.List = [whPrePowe.List; data{1}(i).Wh.MaxPower(preCMaskWh)];
-        mzPosFreq.List = [mzPosFreq.List; data{2}(i).Mz.MaxFreq(posCMaskMz)];
-        mzPosPowe.List = [mzPosPowe.List; data{2}(i).Mz.MaxPower(posCMaskMz)];
-        whPosFreq.List = [whPosFreq.List; data{2}(i).Wh.MaxFreq(posCMaskWh)];
-        whPosPowe.List = [whPosPowe.List; data{2}(i).Wh.MaxPower(posCMaskWh)];
+        mzPreFreq.List = [mzPreFreq.List; data{1}(i).MaxFreq.Mz(preCMask)];
+        mzPrePowe.List = [mzPrePowe.List; data{1}(i).MaxPower.Mz(preCMask)];
+        whPreFreq.List = [whPreFreq.List; data{1}(i).MaxFreq.Wh(preCMask)];
+        whPrePowe.List = [whPrePowe.List; data{1}(i).MaxPower.Wh(preCMask)];
+        mzPosFreq.List = [mzPosFreq.List; data{2}(i).MaxFreq.Mz(posCMask)];
+        mzPosPowe.List = [mzPosPowe.List; data{2}(i).MaxPower.Mz(posCMask)];
+        whPosFreq.List = [whPosFreq.List; data{2}(i).MaxFreq.Wh(posCMask)];
+        whPosPowe.List = [whPosPowe.List; data{2}(i).MaxPower.Wh(posCMask)];
     end
 
     combined = nchoosek({mzPreFreq, mzPrePowe, whPreFreq, whPrePowe, ...
@@ -432,10 +415,10 @@ for chc=0:1
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.2.3 - Group PSD + std
+%% 3.1.6 - Group PSD + std
 clc
 save = 0;
-
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/PSD_Group/';
 for chc=0:1
     clf
     
@@ -443,33 +426,23 @@ for chc=0:1
     if chc
         ttl = "Right choice";
     end
-    data = {struct('Mz', [], 'Wh', [], 'Freq', []), struct('Mz', [], 'Wh', [], 'Freq', [])}; 
+    data = {struct('Mz', [], 'Wh', []), struct('Mz', [], 'Wh', [])}; 
     for nData=1:numReads
         nTrials = 0;
         for i=1:numSubReads
-            nTrials = nTrials + length(unique(dataFull{nData, i}.Pwelch.Lap));
+            nTrials = nTrials + size(dataFull{nData, i}.Choice, 1);
 
             dataTemp = dataFull{nData, i}.Pwelch;
-            lap = dataTemp.Lap;
-            uniqueLap = unique(lap);
 
             mzPsd = [];
             mzFrq = [];
             whPsd = [];
             whFrq = [];
-            for lp=1:length(uniqueLap)
-                lapMask = dataTemp.Lap == uniqueLap(lp);
-                jobMask = dataTemp.Job == "Mz";
-                cMask = dataTemp.Choice == chc;
-
-                mzPsd = [mzPsd, dataTemp.Psd(lapMask & jobMask & cMask)];
-                mzFrq = [mzFrq, dataTemp.Frequency(lapMask & jobMask & cMask)];
-                whPsd = [whPsd, dataTemp.Psd(lapMask & ~jobMask & cMask)];
-                
-            end
-            data{nData}.Mz = [data{nData}.Mz, mzPsd];
-            data{nData}.Wh = [data{nData}.Wh, whPsd];
-            data{nData}.Freq = [data{nData}.Freq, mzFrq];
+       
+            cMask = dataTemp.Choice == chc;
+            
+            data{nData}.Mz = [data{nData}.Mz; dataTemp.Psd.Mz(cMask, :)];
+            data{nData}.Wh = [data{nData}.Wh; dataTemp.Psd.Wh(cMask, :)];
         end
 
         key = "Pre";
@@ -481,17 +454,17 @@ for chc=0:1
         fig.Position = [1 1 1600 1000];
         subplot(1,2,nData);
 
-        x = mean(data{nData}.Freq, 2);
-        meanWh = mean(data{nData}.Wh,2);
-        meanMz = mean(data{nData}.Mz,2);
+        x = dataTemp.Frequency;
+        meanWh = mean(data{nData}.Wh);
+        meanMz = mean(data{nData}.Mz);
         % Std  
-        stdWh = std(data{nData}.Wh')/sqrt(nTrials); 
-        stdMz = std(data{nData}.Mz')/sqrt(nTrials);
+        stdWh = std(data{nData}.Wh)/sqrt(nTrials); 
+        stdMz = std(data{nData}.Mz)/sqrt(nTrials);
 
         plot(x, meanWh, 'r', x, meanMz, 'k')
         hold on
-        plot(x, meanMz+stdMz', 'k--', x, meanMz-stdMz', 'k--')
-        plot(x, meanWh+stdWh', 'r--', x, meanWh-stdWh', 'r--')
+        plot(x, meanMz+stdMz, 'k--', x, meanMz-stdMz, 'k--')
+        plot(x, meanWh+stdWh, 'r--', x, meanWh-stdWh, 'r--')
         xlim([0,12])
         ylim([0 , 50000])
         label1{1} = 'Wheel';
@@ -527,12 +500,12 @@ for chc=0:1
 end
 
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.2.4 - err bar
+%% 3.1.7 - err bar
 
 clf
 save = 0;
 bands = [3,5; 6,10];
-savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Bar/';
 for bnd=1:length(bands)
     data = {struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', []), struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', [])}; 
     clf;
@@ -540,34 +513,21 @@ for bnd=1:length(bands)
         nTrials = 0;
         for i=1:numSubReads
             dataTemp = dataFull{nData, i}.Pwelch;
-            nTrials = nTrials + length(unique(dataTemp.Lap));
-            lap = dataTemp.Lap;
-            uniqueLap = unique(lap);
+            nTrials = nTrials + size(dataFull{nData, i}.Choice, 1);
 
             mzPsdC = [];
             mzPsdE = [];
             frq = [];
             whPsdC = [];
             whPsdE = [];
-            for lp=1:length(uniqueLap)
 
-                lapMask = dataTemp.Lap == uniqueLap(lp);
-                freqMask = ( dataTemp.Frequency  > bands(bnd,1) ) & ( dataTemp.Frequency  < bands(bnd,2));
-                jobMask = dataTemp.Job == "Mz";
-                cMask = dataTemp.Choice == 0;
+            fMask = ( dataTemp.Frequency  > bands(bnd,1) ) & ( dataTemp.Frequency  < bands(bnd,2));
+            cMask = dataTemp.Choice == 0;
 
-                frq = [frq, dataTemp.Frequency(lapMask & jobMask & freqMask & cMask)];
-                mzPsdE = [mzPsdE, dataTemp.Psd(lapMask & jobMask & freqMask & cMask)];
-                whPsdE = [whPsdE, dataTemp.Psd(lapMask & ~jobMask & freqMask & cMask)];
-                
-                mzPsdC = [mzPsdC, dataTemp.Psd(lapMask & jobMask & freqMask & ~cMask)];
-                whPsdC = [whPsdC, dataTemp.Psd(lapMask & ~jobMask & freqMask & ~cMask)];
-            end
-            data{nData}.MzC = [data{nData}.MzC, mzPsdC];
-            data{nData}.WhC = [data{nData}.WhC, whPsdC];
-            data{nData}.MzE = [data{nData}.MzE, mzPsdE];
-            data{nData}.WhE = [data{nData}.WhE, whPsdE];
-            data{nData}.Freq = [data{nData}.Freq, frq];
+            data{nData}.MzC = [data{nData}.MzC; dataTemp.Psd.Mz(~cMask, fMask)];
+            data{nData}.WhC = [data{nData}.WhC; dataTemp.Psd.Wh(~cMask, fMask)];
+            data{nData}.MzE = [data{nData}.MzE; dataTemp.Psd.Mz(cMask, fMask)];
+            data{nData}.WhE = [data{nData}.WhE; dataTemp.Psd.Wh(cMask, fMask)];
         end
 
         key = "Pre";
@@ -580,10 +540,10 @@ for bnd=1:length(bands)
         subplot(1,2,nData);
 
         x = mean(data{nData}.Freq, 2);
-        meanWhC = mean(data{nData}.WhC,1);
-        meanMzC = mean(data{nData}.MzC,1);
-        meanWhE = mean(data{nData}.WhE,1);
-        meanMzE = mean(data{nData}.MzE,1);
+        meanWhC = mean(data{nData}.WhC,2);
+        meanMzC = mean(data{nData}.MzC,2);
+        meanWhE = mean(data{nData}.WhE,2);
+        meanMzE = mean(data{nData}.MzE,2);
         % Std  
         stdWhC = std(meanWhC)/sqrt(nTrials);
         stdMzC = std(meanMzC)/sqrt(nTrials);
@@ -597,6 +557,10 @@ for bnd=1:length(bands)
         errorbar([1,2,3,4], [mean(meanMzC), mean(meanMzE), mean(meanWhC), mean(meanWhE)], [stdMzC, stdMzE, stdWhC, stdWhE], 'k.')
         box off
         xticklabels(["Maze C", "Maze E", "Wheel C", "Wheel E"])
+        ylim([0,25000])
+        if bnd == 1
+            ylim([0,15000])
+        end
         ylabel('Power')
         xlabel('Frequency(Hz)')
         title(sprintf("Mean PSD - %s - Band: %i - %i Hz\nMaze: h: %f p: %f\nWheel: h: %f p: %f", key, bands(bnd,1), bands(bnd,2), hMz, pMz, hWh, pWh))
@@ -625,74 +589,66 @@ for bnd=1:length(bands)
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.2.5 - Combined ACG
+%% 3.1.8 - Combined ACG
 
 grIdx = [1, 2; 3, 4];
 save = 0;
-savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
-for chc=0:1
-    for nData=1:numReads
-        auxMzAcgCombine = [];
-        auxWhAcgCombine = [];
-        for i=1:numSubReads
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/ACG/';
 
-            dataTemp = dataFull{nData, i}.Band;
-            lap = dataTemp.Lap;
-            uniqueLap = unique(lap);
-
-            for lp=1:length(uniqueLap)
-                lapMask = dataTemp.Lap == uniqueLap(lp);
-                mzMask = dataTemp.MzSpeed > 100;
-                whMask = dataTemp.WhSpeed > 100;
-                cMask = dataTemp.Choice == chc;
-
-                LFPMz = dataTemp.Lfp(lapMask & mzMask & cMask);
-                LFPWh = dataTemp.Lfp(lapMask & whMask & cMask);
-
-                % Capture snippet
-                auxAcgMz = [];
-                ms = 10*srate; % Sec
-                for idx=[1:ms:size(LFPMz, 1)-ms]
-                    [acg, lagsMz] = xcorr(LFPMz(idx:idx+ms),'coef', 1000);    
-                    auxAcgMz = [ auxAcgMz; acg ];
-                end    
-
-                auxAcgWh = [];
-                for idx=[1:ms:size(LFPWh, 1)-ms]
-                    [acg, lagsWh] = xcorr(LFPWh(idx:idx+ms),'coef', 1000);    
-                    auxAcgWh = [ auxAcgWh; acg ];
-                end
-
-                auxMzAcgCombine = [auxMzAcgCombine; auxAcgMz];
-                auxWhAcgCombine = [auxWhAcgCombine; auxAcgWh];
-              
-                sprintf('%d %d %i',nData, i, lp)
-            end
-        end
+for nData=1:numReads
+    auxMzAcgCombine = [];
+    auxWhAcgCombine = [];
+    for i=1:numSubReads
+        dataTemp = dataFull{nData, i};
         
-        ttlKey = 'Pre';
-        if nData == 2
-            ttlKey = 'Pos';
+        laps = size(dataTemp.Choice, 1);
+        for lp=1:laps
+
+            mzMask = dataTemp.Speed.Mz{lp} > 100;
+            whMask = dataTemp.Speed.Wh{lp} > 100;
+
+            LFPMz = dataTemp.Theta.Band{lp}(mzMask);
+            LFPWh = dataTemp.Theta.Band{lp}(whMask);
+
+            % Capture snippet
+            [acgMz, lagsMz] = xcorr(LFPMz','coef', 1000);    
+            [acgWh, lagsWh] = xcorr(LFPWh','coef', 1000);    
+
+            auxMzAcgCombine = [auxMzAcgCombine, acgMz];
+            auxWhAcgCombine = [auxWhAcgCombine, acgWh];
+
+            sprintf('%d %d %i',nData, i, lp)
         end
-        chcKey = 'Miss';
-        if chc == 1
-            chcKey = 'Hits';
-        end
-        % Plot
-        fig = figure(chc+1);
-        fig.Position = [1 1 1600 1000];
-        sgtitle('Trial Combined ACG LFP')
-        plotImagesc(grIdx(nData, 1), lagsMz, auxMzAcgCombine, 'Mz', ttlKey, chcKey)
-        plotImagesc(grIdx(nData, 2), lagsWh, auxWhAcgCombine, 'Wh', ttlKey, chcKey)
-        
- 
     end
-    if save
-        fileName = sprintf('%sCombined_Trial_Imagesc_ACG_LFP_%s', savePath, chcKey);
-        saveas(fig,fileName, 'epsc');
-        saveas(fig,fileName, 'png');
-    end 
+
+    ttlKey = 'Pre';
+    if nData == 2
+        ttlKey = 'Pos';
+    end
+
+    % Plot
+    fig = figure(1);
+    fig.Position = [1 1 1600 1000];
+    sgtitle('Trial Combined ACG LFP')
+    yyaxis left
+    plotImagesc(grIdx(nData, 1), lagsMz, auxMzAcgCombine', 'Mz', ttlKey)
+    hold on
+    val = size(auxMzAcgCombine, 1)/2;
+    xLimValue = -val:val-1;
+    
+    yyaxis right
+    plot(xLimValue, mean(auxMzAcgCombine, 2), 'w')
+    yyaxis left
+    plotImagesc(grIdx(nData, 2), lagsWh, auxWhAcgCombine', 'Wh', ttlKey)
+    yyaxis right
+    plot(xLimValue, mean(auxMzAcgCombine, 2), 'w')
 end
+if save
+    fileName = sprintf('%sCombined_Trial_Imagesc_ACG_LFP_Theta', savePath);
+    saveas(fig,fileName, 'epsc');
+    saveas(fig,fileName, 'png');
+end 
+
 clearvars -except dataFull data srate dt numReads numSubReads savePath
 %% 3.2.6 - Trial LFP
 clf
@@ -850,3 +806,6 @@ for nData=1:numReads
 end
 clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath
 %% Teste
+
+plot(dataFull{1,1}.Pwelch.Mz.Frequency, dataFull{1,1}.Pwelch.Mz.Psd(1:3, 1:end)')
+xlim([0,12])

@@ -1,75 +1,93 @@
-function data = fillStruct(srate, WindowLength, Overlap, NFFT, data, wSpeed, mSpeed, delta, theta)
+function data = fillStruct(srate, WindowLength, Overlap, NFFT, data, wSpeed, mSpeed)
     dt = 1/srate;     
-    % Lap
+    % Trial
     lap = data.Track.lapID;
-    if delta || theta
-        lapMask = lap > 0;
-        eeg = data.Track.eeg(lapMask);
+    lapUnique = unique(lap);
+    lapUnique = lapUnique(lapUnique > 0);
+    lfpCell = {};
+    choiceArray = [];
+    mzCell = {};
+    whCell = {};
+    bandCellD = {};
+    ampCellD = {};
+    phaCellD = {};
+    freCellD = {};
+    bandCellT = {};
+    ampCellT = {};
+    phaCellT = {};
+    freCellT = {};
+
+    eeg = data.Track.eeg;
+
+    [bandD, ampD, phaD, freD] = ampPhaFreq(eeg',srate,dt,3,5, 1, 1);
+    [bandT, ampT, phaT, freT] = ampPhaFreq(eeg',srate,dt,6,10, 1, 1);
+
+    for tr=1:length(lapUnique)
+        trialMask = lap == lapUnique(tr);
+        cChoice = data.Track.corrChoice(trialMask);
+
+        lfpCell{tr} = data.Track.eeg(trialMask);   
+        choiceArray = [choiceArray; cChoice(1)];
+        mzCell{tr} = data.Track.speed_MMsec(trialMask);
+        whCell{tr} = data.Laps.WhlSpeedCW(trialMask);
+        bandCellD{tr} = bandD(trialMask);
+        ampCellD{tr} = ampD(trialMask);
+        phaCellD{tr} = phaD(trialMask);
+        freCellD{tr} = freD(trialMask);
+        bandCellT{tr} = bandT(trialMask);
+        ampCellT{tr} = ampT(trialMask);
+        phaCellT{tr} = phaT(trialMask);
+        freCellT{tr} = freT(trialMask);
+
+        data.Lfp = lfpCell';
+        data.Delta.Band = bandCellD';
+        data.Theta.Band = bandCellT';
+        data.Delta.Amplitude = ampCellD';
+        data.Theta.Amplitude = ampCellT';
+        data.Delta.Phase = phaCellD';
+        data.Theta.Phase = phaCellT';
+        data.Delta.InstFreq= freCellD';
+        data.Theta.InstFreq = freCellT';
+        data.Choice = choiceArray;
+        data.Speed.Mz = mzCell';
+        data.Speed.Wh = whCell';
+    end    
+
+    psdAuxMz = [];
+    choAuxMz = [];
+    psdAuxWh = [];
+    choAuxWh = [];
+    mzSpeedAux = [];
+    whSpeedAux = [];
+
+    for lp=1:length(lapUnique)
+        lapMask = lap == lapUnique(lp);
+
+        speedMaskMz = data.Track.speed_MMsec(lapMask) > mSpeed;
+        mzAux = mean(find(speedMaskMz));
+
+        speedMaskWh = data.Laps.WhlSpeedCW(lapMask) > wSpeed;
+        whAux = mean(find(speedMaskWh));
+
         cChoice = data.Track.corrChoice(lapMask);
-        lfpMzSpeed =  data.Track.speed_MMsec(lapMask);
-        lfpWhSpeed = (data.Laps.WhlSpeedCW(lapMask) + data.Laps.WhlSpeedCCW(lapMask));
-        
-        if delta
-            % add Bands
-            [band, amp, pha, fre] = ampPhaFreq(eeg',srate,dt,3,5, 1, 1);
-            data.Band = struct('Lfp', eeg, 'Delta', band', 'Amplitude', amp', 'Phase', pha',...
-                'InstFreq', fre', 'Lap', lap(lapMask), 'Choice', cChoice, 'MzSpeed', lfpMzSpeed, 'WhSpeed', lfpWhSpeed);
-        else
-            [band, amp, pha, fre] = ampPhaFreq(eeg',srate,dt,6,10, 1, 1);
-            data.Band = struct('Lfp', eeg, 'Theta', band', 'Amplitude', amp', 'Phase', pha',...
-                'InstFreq', fre', 'Lap', lap(lapMask), 'Choice', cChoice, 'MzSpeed', lfpMzSpeed, 'WhSpeed', lfpWhSpeed);
-        end
-     else
-        jobList = ["Mz", "Wh"];
+        eeg = data.Track.eeg(lapMask);
 
-        freAux = [];
-        psdAux = [];
-        choAux = [];
-        lapAux = [];
-        jobAux = [];
-        mzSAux = [];
-        whSAux = [];
+        % Mz
+        [psd, frq] = pwelch(eeg(speedMaskMz)',WindowLength,Overlap,NFFT,srate);
+        psdAuxMz = [psdAuxMz, psd];      
+        choAuxMz = [choAuxMz, cChoice(1)];
+        mzSpeedAux = [mzSpeedAux, mzAux];              
 
-        lapUnique = unique(lap);
-        for lp=1:length(lapUnique)
-            if lapUnique(lp) ~= 0
-                lapMask = lap == lapUnique(lp);
-                for jb=1:length(jobList)
-                    if jobList(jb) == "Mz"
-                        speedMask = data.Track.speed_MMsec(lapMask) > mSpeed;
-                        mzAux = mean(find(speedMask));
-                        whAux = 0;
-                    else
-                        speedMask = (data.Laps.WhlSpeedCW(lapMask) + data.Laps.WhlSpeedCCW(lapMask)) > wSpeed;
-                        mzAux = 0;
-                        whAux = mean(find(speedMask));
-                    end
-
-                    cChoice = data.Track.corrChoice(lapMask);
-                    cChoice = cChoice(speedMask);
-                    eeg = data.Track.eeg(lapMask);
-
-                    [psd, frq] = pwelch(eeg(speedMask),WindowLength,Overlap,NFFT,srate);
-                    freAux = [freAux; frq];
-                    psdAux = [psdAux; psd];
-                    
-                    lapAux = [lapAux; repmat(lp,length(frq),1)];      
-                    jobAux = [jobAux; repmat(jobList(jb),length(frq),1)];            
-                    choAux = [choAux; repmat(cChoice(1),length(frq),1)];
-                    mzSAux = [mzSAux; repmat(mzAux,length(frq),1)];
-                    whSAux = [whSAux; repmat(whAux,length(frq),1)];
-                end
-            end
-        end
+        % Wh
+        [psd, frq] = pwelch(eeg(speedMaskWh)',WindowLength,Overlap,NFFT,srate);
+        psdAuxWh = [psdAuxWh, psd];      
+        whSpeedAux = [whSpeedAux, whAux]; 
     end
 
-    if ~(delta || theta)
-        data.Pwelch.Frequency = freAux;
-        data.Pwelch.Psd = psdAux;
-        data.Pwelch.Lap = lapAux;
-        data.Pwelch.Choice = choAux;
-        data.Pwelch.Job = jobAux;
-        data.Pwelch.MzSpeedMean = mzSAux;
-        data.Pwelch.WhSpeedMean = whSAux;
-    end
+    data.Pwelch.Choice = choAuxMz';        
+    data.Pwelch.Frequency = frq';
+    data.Pwelch.Psd.Mz = psdAuxMz';
+    data.Pwelch.Psd.Wh = psdAuxWh';
+    data.Pwelch.Speed.Mz = mzSpeedAux';
+    data.Pwelch.Speed.Wh = whSpeedAux';
 end

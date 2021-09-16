@@ -38,7 +38,6 @@ function data = filterLFP(data, srate)
         data.Track.corrChoice = data.Track.corrChoice(~indexLogic);
         data.Track.lapID = data.Track.lapID(~indexLogic);
         data.Laps.WhlSpeedCW = data.Laps.WhlSpeedCW(~indexLogic);
-        data.Laps.WhlSpeedCCW = data.Laps.WhlSpeedCCW(~indexLogic);
     else 
         data.Track.eeg = LFP';
     end
