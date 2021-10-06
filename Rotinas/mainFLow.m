@@ -3,7 +3,7 @@ clear
 clc
 close all
 format compact
-cd('D:/Ivan/OneDrive/Códigos ( Profissional )/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
+cd('D:/Ivan/OneDrive/Projetos/Códigos ( Profissional )/Material criado/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
 addpath('Rotinas/Functions/');
 srate=1250;
 dt=1/srate;
@@ -108,7 +108,7 @@ clear
 clc
 close all
 format compact
-cd('D:/Ivan/OneDrive/Códigos ( Profissional )/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
+cd('D:/Ivan/OneDrive/Projetos/Códigos ( Profissional )/Material criado/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
 addpath('Rotinas/Functions/');
 srate=1250;
 dt=1/srate;
@@ -500,7 +500,7 @@ for chc=0:1
 end
 
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.7 - err bar
+%% 3.1.7 - err bar Corr x Miss
 
 clf
 save = 0;
@@ -508,6 +508,7 @@ bands = [3,5; 6,10];
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Bar/';
 for bnd=1:length(bands)
     data = {struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', []), struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', [])}; 
+   
     clf;
     for nData=1:numReads
         nTrials = 0;
@@ -528,6 +529,7 @@ for bnd=1:length(bands)
             data{nData}.WhC = [data{nData}.WhC; dataTemp.Psd.Wh(~cMask, fMask)];
             data{nData}.MzE = [data{nData}.MzE; dataTemp.Psd.Mz(cMask, fMask)];
             data{nData}.WhE = [data{nData}.WhE; dataTemp.Psd.Wh(cMask, fMask)];
+
         end
 
         key = "Pre";
@@ -544,6 +546,7 @@ for bnd=1:length(bands)
         meanMzC = mean(data{nData}.MzC,2);
         meanWhE = mean(data{nData}.WhE,2);
         meanMzE = mean(data{nData}.MzE,2);
+
         % Std  
         stdWhC = std(meanWhC)/sqrt(nTrials);
         stdMzC = std(meanMzC)/sqrt(nTrials);
@@ -551,8 +554,20 @@ for bnd=1:length(bands)
         stdMzE = std(meanMzE)/sqrt(nTrials);
 
         bar([1,2,3,4], [mean(meanMzC), mean(meanMzE), mean(meanWhC), mean(meanWhE)], 'w')
-        [ hMz, pMz ] = ttest2(meanMzC, meanMzE);
-        [ hWh, pWh ] = ttest2(meanWhC, meanWhE);
+        [h, p, w] = swtest([meanMzC; meanMzE]);
+        
+        if h == 1
+            [ pMz, hMz ] = ranksum(meanMzC, meanMzE);
+        else
+            [ hMz, pMz ] = ttest2(meanMzC, meanMzE);
+        end
+        [h, p, w] = swtest([meanWhC; meanWhE]);
+        if h == 1
+            [ pWh, hWh ] = ranksum(meanWhC, meanWhE);
+        else
+            [ hWh, pWh ] = ttest2(meanWhC, meanWhE);
+        end
+        
         hold on
         errorbar([1,2,3,4], [mean(meanMzC), mean(meanMzE), mean(meanWhC), mean(meanWhE)], [stdMzC, stdMzE, stdWhC, stdWhE], 'k.')
         box off
@@ -562,7 +577,6 @@ for bnd=1:length(bands)
             ylim([0,15000])
         end
         ylabel('Power')
-        xlabel('Frequency(Hz)')
         title(sprintf("Mean PSD - %s - Band: %i - %i Hz\nMaze: h: %f p: %f\nWheel: h: %f p: %f", key, bands(bnd,1), bands(bnd,2), hMz, pMz, hWh, pWh))
         set(gca, ...
         'Box',      'off',...
@@ -589,10 +603,186 @@ for bnd=1:length(bands)
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.8 - Combined ACG
+%% 3.1.8 - Boxplot Delta x Theta
+
+clf
+save = 0;
+bands = [3,5; 6,10];
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Box/';
+for bnd=1%:length(bands)
+    data = {struct('Mz', [], 'Wh', [], 'Freq', []), struct('Mz', [], 'Wh', [], 'Freq', [])}; 
+    clf;
+    for nData=1:numReads
+        nTrials = 0;
+        for i=1:numSubReads
+            dataTemp = dataFull{nData, i}.Pwelch;
+            nTrials = nTrials + size(dataFull{nData, i}.Choice, 1);
+
+            mzPsd = [];
+            frq = [];
+            whPsd = [];
+
+            fMask = ( dataTemp.Frequency  > bands(bnd,1) ) & ( dataTemp.Frequency  < bands(bnd,2));
+
+            data{nData}.Mz = [data{nData}.Mz; dataTemp.Psd.Mz(fMask)];
+            data{nData}.Wh = [data{nData}.Wh; dataTemp.Psd.Wh(fMask)];
+        end
+
+        key = "Pre";
+        if nData == 2
+            key = "Pos";
+        end
+
+        fig = figure(1);
+        fig.Position = [1 1 1600 1000];
+        subplot(1,2,nData);
+
+        x = mean(data{nData}.Freq, 2);
+        meanMz = mean(data{nData}.Mz,2);
+        meanWh = mean(data{nData}.Wh,2);
+
+        boxplot([meanMz, meanWh])
+        [ hMz, pMz ] = ttest2(meanMz, meanMz);
+        [ hWh, pWh ] = ttest2(meanWh, meanWh);
+        hold on
+        box off
+        xticklabels(["Maze", "Wheel"])
+        ylabel('Power (mV²/Hz)')
+        title(sprintf("Mean PSD - %s - Band: %i - %i Hz\nMaze: h: %f p: %f\nWheel: h: %f p: %f", key, bands(bnd,1), bands(bnd,2), hMz, pMz, hWh, pWh))
+        set(gca, ...
+        'Box',      'off',...
+        'FontName', 'Arial',...
+        'TickDir',  'out', ...
+        'TickLength', [.02 .02],...
+        'XColor',    [.3 .3 .3],...
+        'YColor',    [.3 .3 .3],...
+        'LineWidth', 1,...
+        'FontSize', 8, ...
+        'FontWeight', 'bold',...
+        'TitleFontSizeMultiplier', 1.6,...
+        'LabelFontSizeMultiplier', 1.6,...
+        'XScale', 'linear') 
+    end
+
+
+    if save
+        fileName = sprintf('%sGroup_Box_PSD_Pre_Pos_Std_%i_%i',savePath, bands(bnd,1), bands(bnd,2));
+        saveas(fig,fileName, 'epsc');
+        saveas(fig,fileName, 'png');
+    end
+end
+clearvars -except dataFull data srate dt numReads numSubReads savePath
+
+%% 3.1.9 - Histogram Corr x Miss
+
+clf
+save = 0;
+bands = [3,5; 6,10];
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Bar/';
+for bnd=1:length(bands)
+    data = {struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', []), struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', [])}; 
+   
+    clf;
+    for nData=1:numReads
+        nTrials = 0;
+        for i=1:numSubReads
+            dataTemp = dataFull{nData, i}.Pwelch;
+            nTrials = nTrials + size(dataFull{nData, i}.Choice, 1);
+
+            mzPsdC = [];
+            mzPsdE = [];
+            frq = [];
+            whPsdC = [];
+            whPsdE = [];
+
+            fMask = ( dataTemp.Frequency  > bands(bnd,1) ) & ( dataTemp.Frequency  < bands(bnd,2));
+            cMask = dataTemp.Choice == 0;
+
+            data{nData}.MzC = [data{nData}.MzC; dataTemp.Psd.Mz(~cMask, fMask)];
+            data{nData}.WhC = [data{nData}.WhC; dataTemp.Psd.Wh(~cMask, fMask)];
+            data{nData}.MzE = [data{nData}.MzE; dataTemp.Psd.Mz(cMask, fMask)];
+            data{nData}.WhE = [data{nData}.WhE; dataTemp.Psd.Wh(cMask, fMask)];
+
+        end
+
+        key = "Pre";
+        if nData == 2
+            key = "Pos";
+        end
+
+        fig = figure(1);
+        fig.Position = [1 1 1600 1000];
+        subplot(1,2,nData);
+
+        x = mean(data{nData}.Freq, 2);
+        meanWhC = mean(data{nData}.WhC,2);
+        meanMzC = mean(data{nData}.MzC,2);
+        meanWhE = mean(data{nData}.WhE,2);
+        meanMzE = mean(data{nData}.MzE,2);
+
+        % Std  
+        stdWhC = std(meanWhC)/sqrt(nTrials);
+        stdMzC = std(meanMzC)/sqrt(nTrials);
+        stdWhE = std(meanWhE)/sqrt(nTrials);
+        stdMzE = std(meanMzE)/sqrt(nTrials);
+        
+        bns = 15;
+        if ( nData == 1)
+            bns = 4;
+        end
+        histogram(meanMzC,15, 'FaceColor',[0 1 0] )
+        hold on
+        histogram(meanMzE,bns,'FaceColor',[0 0 1])
+        [h, p, w] = swtest([meanWhC; meanWhE]);
+        
+        if h == 1
+            [ pMz, hMz ] = ranksum(meanMzC, meanMzE);
+        else
+            [ hMz, pMz ] = ttest2(meanMzC, meanMzE);
+        end
+        [h, p, w] = swtest([meanWhC; meanWhE]);
+        if h == 1
+            [ pWh, hWh ] = ranksum(meanWhC, meanWhE);
+        else
+            [ hWh, pWh ] = ttest2(meanWhC, meanWhE);
+        end
+        
+        box off
+        label1{1} = 'Correct';
+        label1{2} = 'Miss';
+        box off
+        legend(label1,'location','bestoutside','orientation','horizontal')
+        ylabel('Power')
+        title(sprintf("Mean PSD - %s - Band: %i - %i Hz\nMaze: h: %f p: %f\nWheel: h: %f p: %f", key, bands(bnd,1), bands(bnd,2), hMz, pMz, hWh, pWh))
+        set(gca, ...
+        'Box',      'off',...
+        'FontName', 'Helvetica',...
+        'TickDir',  'in', ...
+        'TickLength', [.02 .02],...
+        'YGrid',     'on',...
+        'GridLineStyle', '-.',...
+        'XColor',    [.3 .3 .3],...
+        'YColor',    [.3 .3 .3],...
+        'LineWidth', 1,...
+        'FontSize', 8, ...
+        'FontWeight', 'bold',...
+        'TitleFontSizeMultiplier', 1.6,...
+        'LabelFontSizeMultiplier', 1.6,...
+        'XScale', 'linear') 
+    end
+
+
+    if save
+        fileName = sprintf('%sGroup_Histogram_PSD_Pre_Pos_%i_%i',savePath, bands(bnd,1), bands(bnd,2));
+        saveas(fig,fileName, 'epsc');
+        saveas(fig,fileName, 'png');
+    end
+end
+% clearvars -except dataFull data srate dt numReads numSubReads savePath
+%% 3.1.10 - Combined ACG
 
 grIdx = [1, 2; 3, 4];
-save = 0;
+save = 1;
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/ACG/';
 
 for nData=1:numReads
@@ -607,12 +797,12 @@ for nData=1:numReads
             mzMask = dataTemp.Speed.Mz{lp} > 100;
             whMask = dataTemp.Speed.Wh{lp} > 100;
 
-            LFPMz = dataTemp.Theta.Band{lp}(mzMask);
-            LFPWh = dataTemp.Theta.Band{lp}(whMask);
+            LFPMz = dataTemp.Lfp{lp}(mzMask);
+            LFPWh = dataTemp.Lfp{lp}(whMask);
 
             % Capture snippet
-            [acgMz, lagsMz] = xcorr(LFPMz','coef', 1000);    
-            [acgWh, lagsWh] = xcorr(LFPWh','coef', 1000);    
+            [acgMz, lagsMz] = xcorr(LFPMz,'coef', 1000);    
+            [acgWh, lagsWh] = xcorr(LFPWh,'coef', 1000);    
 
             auxMzAcgCombine = [auxMzAcgCombine, acgMz];
             auxWhAcgCombine = [auxWhAcgCombine, acgWh];
@@ -644,7 +834,7 @@ for nData=1:numReads
     plot(xLimValue, mean(auxMzAcgCombine, 2), 'w')
 end
 if save
-    fileName = sprintf('%sCombined_Trial_Imagesc_ACG_LFP_Theta', savePath);
+    fileName = sprintf('%sCombined_Trial_Imagesc_ACG_LFP', savePath);
     saveas(fig,fileName, 'epsc');
     saveas(fig,fileName, 'png');
 end 
@@ -805,7 +995,206 @@ for nData=1:numReads
     end
 end
 clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath
-%% Teste
+%% 3.2.8 Figure 2
+speedthresh=100;
+oneStep = struct("Mz", [], "Wh", []);
+secStep = struct('Trial', oneStep, 'Full', oneStep);
 
-plot(dataFull{1,1}.Pwelch.Mz.Frequency, dataFull{1,1}.Pwelch.Mz.Psd(1:3, 1:end)')
-xlim([0,12])
+for nData=1%:nReads
+    respDt = struct('Amp', secStep, 'Fre', secStep);
+    respTh = struct('Amp', secStep, 'Fre', secStep);
+    speed = secStep;
+    
+    for file=1:numSubReads
+        dataTemp = dataFull{nData, file};
+        
+        for session=1:length(dataTemp.Choice)
+            % Speed
+            speedMzMask = dataTemp.Speed.Mz{session} > speedthresh;
+            speedWhMask = dataTemp.Speed.Wh{session} > speedthresh;
+            
+            speed.Trial.Mz = [ speed.Trial.Mz, mean(dataTemp.Speed.Mz{session}(speedMzMask)) ];
+            speed.Trial.Wh = [ speed.Trial.Wh, mean(dataTemp.Speed.Wh{session}(speedWhMask)) ];
+            speed.Full.Mz = [ speed.Full.Mz; dataTemp.Speed.Mz{session}(speedMzMask) ];
+            speed.Full.Wh = [ speed.Full.Wh; dataTemp.Speed.Wh{session}(speedWhMask) ];
+            % Amplitude
+            respDt.Amp.Trial.Mz = [respDt.Amp.Trial.Mz, mean(dataTemp.Delta.Amplitude{session}(speedMzMask)) ];
+            respDt.Amp.Trial.Wh = [respDt.Amp.Trial.Wh, mean(dataTemp.Delta.Amplitude{session}(speedWhMask)) ];
+            respTh.Amp.Trial.Mz = [respTh.Amp.Trial.Mz, mean(dataTemp.Theta.Amplitude{session}(speedMzMask)) ];
+            respTh.Amp.Trial.Wh = [respTh.Amp.Trial.Wh, mean(dataTemp.Theta.Amplitude{session}(speedWhMask)) ];
+            respDt.Amp.Full.Mz = [respDt.Amp.Full.Mz; dataTemp.Delta.Amplitude{session}(speedMzMask)' ];
+            respDt.Amp.Full.Wh = [respDt.Amp.Full.Wh; dataTemp.Delta.Amplitude{session}(speedWhMask)' ];
+            respTh.Amp.Full.Mz = [respTh.Amp.Full.Mz; dataTemp.Theta.Amplitude{session}(speedMzMask)' ];
+            respTh.Amp.Full.Wh = [respTh.Amp.Full.Wh; dataTemp.Theta.Amplitude{session}(speedWhMask)' ];
+            % Frequency
+            respDt.Fre.Trial.Mz = [respDt.Fre.Trial.Mz, mean(dataTemp.Delta.InstFreq{session}(speedMzMask)) ];
+            respDt.Fre.Trial.Wh = [respDt.Fre.Trial.Wh, mean(dataTemp.Delta.InstFreq{session}(speedWhMask)) ];
+            respTh.Fre.Trial.Mz = [respTh.Fre.Trial.Mz, mean(dataTemp.Theta.InstFreq{session}(speedMzMask)) ];
+            respTh.Fre.Trial.Wh = [respTh.Fre.Trial.Wh, mean(dataTemp.Theta.InstFreq{session}(speedWhMask)) ];
+            respDt.Fre.Full.Mz = [respDt.Fre.Full.Mz; dataTemp.Delta.InstFreq{session}(speedMzMask)' ];
+            respDt.Fre.Full.Wh = [respDt.Fre.Full.Wh; dataTemp.Delta.InstFreq{session}(speedWhMask)' ];
+            respTh.Fre.Full.Mz = [respTh.Fre.Full.Mz; dataTemp.Theta.InstFreq{session}(speedMzMask)' ];
+            respTh.Fre.Full.Wh = [respTh.Fre.Full.Wh; dataTemp.Theta.InstFreq{session}(speedWhMask)' ];
+            
+        end
+    end
+end
+
+oneStep = struct("Mz", [], "Wh", []);
+secondStep = struct('Dt', oneStep, 'Th', oneStep);
+binsResp = struct('Speed', secondStep, 'Amp', secondStep,'Fre', secondStep);
+thirdStep = struct('R_Amp', oneStep, 'P_Amp', oneStep, 'R_Fre', oneStep, 'P_Fre', oneStep);
+rpBin = struct('Dt', thirdStep, 'Th', thirdStep);
+
+t=5; %bin in sec
+count=1;
+for i=1:(t*srate):length(speed.Full.Mz)-(t*srate)
+    try
+        binsResp.Speed.Dt.Mz = [binsResp.Speed.Dt.Mz, mean(speed.Full.Mz(count:count+(t*srate))) ];
+        binsResp.Amp.Dt.Mz = [binsResp.Amp.Dt.Mz, mean(respDt.Amp.Full.Mz(count:count+(t*srate))) ];
+        binsResp.Fre.Dt.Mz = [binsResp.Fre.Dt.Mz, mean(respDt.Fre.Full.Mz(count:count+(t*srate))) ];
+        
+        binsResp.Speed.Th.Mz = [binsResp.Speed.Th.Mz, mean(speed.Full.Mz(count:count+(t*srate))) ];
+        binsResp.Amp.Th.Mz = [binsResp.Amp.Th.Mz, mean(respTh.Amp.Full.Mz(count:count+(t*srate))) ];
+        binsResp.Fre.Th.Mz = [binsResp.Fre.Th.Mz, mean(respTh.Fre.Full.Mz(count:count+(t*srate))) ];
+        count=count+(t*srate);
+    end
+end
+[rpBin.Dt.R_Amp.Mz, rpBin.Dt.P_Amp.Mz] = corr( binsResp.Speed.Dt.Mz', binsResp.Amp.Dt.Mz');
+[rpBin.Dt.R_Fre.Mz, rpBin.Dt.P_Fre.Mz] = corr( binsResp.Speed.Dt.Mz', binsResp.Fre.Dt.Mz');
+[rpBin.Th.R_Amp.Mz, rpBin.Th.P_Amp.Mz] = corr( binsResp.Speed.Th.Mz', binsResp.Amp.Th.Mz');
+[rpBin.Th.R_Fre.Mz, rpBin.Th.P_Fre.Mz] = corr( binsResp.Speed.Th.Mz', binsResp.Fre.Th.Mz');
+
+count=1;
+for i=1:(t*srate):length(speed.Full.Wh)-(t*srate)
+    try
+        binsResp.Speed.Dt.Wh = [binsResp.Speed.Dt.Wh, mean(speed.Full.Wh(count:count+(t*srate))) ];
+        binsResp.Amp.Dt.Wh = [binsResp.Amp.Dt.Wh, mean(respDt.Amp.Full.Wh(count:count+(t*srate))) ];
+        binsResp.Fre.Dt.Wh = [binsResp.Fre.Dt.Wh, mean(respDt.Fre.Full.Wh(count:count+(t*srate))) ];
+        
+        binsResp.Speed.Th.Wh = [binsResp.Speed.Th.Wh, mean(speed.Full.Wh(count:count+(t*srate))) ];
+        binsResp.Amp.Th.Wh = [binsResp.Amp.Th.Wh, mean(respTh.Amp.Full.Wh(count:count+(t*srate))) ];
+        binsResp.Fre.Th.Wh = [binsResp.Fre.Th.Wh, mean(respTh.Fre.Full.Wh(count:count+(t*srate))) ];
+        count=count+(t*srate);
+    end
+end
+[rpBin.Dt.R_Amp.Wh, rpBin.Dt.P_Amp.Wh] = corr( binsResp.Speed.Dt.Wh', binsResp.Amp.Dt.Wh');
+[rpBin.Dt.R_Fre.Wh, rpBin.Dt.P_Fre.Wh] = corr( binsResp.Speed.Dt.Wh', binsResp.Fre.Dt.Wh');
+[rpBin.Th.R_Amp.Wh, rpBin.Th.P_Amp.Wh] = corr( binsResp.Speed.Th.Wh', binsResp.Amp.Th.Wh');
+[rpBin.Th.R_Fre.Wh, rpBin.Th.P_Fre.Wh] = corr( binsResp.Speed.Th.Wh', binsResp.Fre.Th.Wh');
+clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath binsResp speed...
+    speedthresh rpBin
+%%
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Max Power and Frequency/';
+save = 1; 
+
+clf
+fig = figure(1);
+fig.Position = [1 1 1600 1000];
+% fig.Position = [1 1 1600 1000];
+sgtitle('Delta x Theta')
+%histograms
+subplot(231)
+bins=[0:40:1000];
+histogram(speed.Trial.Mz,bins,'FaceColor',[0 0 0])
+hold on
+histogram(speed.Trial.Wh,bins,'FaceColor',[1 0 0])
+
+plot([speedthresh, speedthresh],[0 100],'k--')
+xlim([0 1000])
+xlabel 'Speed (cm/s)'
+ylabel 'Count (#)'
+title 'Trial Speed'
+axis square
+set(gca,...
+    'color','w',...
+    'Box', 'off')
+
+% Speed x Power corr
+subplot(232)
+plot(binsResp.Speed.Dt.Mz, binsResp.Amp.Dt.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
+hold on
+plot(binsResp.Speed.Dt.Wh, binsResp.Amp.Dt.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
+plot([speedthresh, speedthresh],[0 800],'k--')
+title(['Mz= ', num2str(rpBin.Dt.R_Amp.Mz), '  Wh=', num2str(rpBin.Dt.R_Amp.Wh)])
+xlabel('Speed (cm/s)')
+ylabel('Amplitude (mV)')
+xlim([0, 1200])
+box off
+axis square
+
+% Speed x Fre corr
+subplot(233)
+plot(binsResp.Speed.Dt.Mz, binsResp.Fre.Dt.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
+hold on
+plot(binsResp.Speed.Dt.Wh, binsResp.Fre.Dt.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
+plot([speedthresh speedthresh],[0 5],'k--')
+title(['Mz= ' num2str(rpBin.Dt.R_Fre.Mz) '  Wh=' num2str(rpBin.Dt.R_Fre.Wh)])
+xlabel 'Speed (cm/s)'
+ylabel 'Frequency (Hz)'
+xlim([0 1200])
+ylim([3 5])
+box off
+axis square
+set(gcf,'color','w')
+
+subplot(232)
+coefMzAmp = polyfit(binsResp.Speed.Dt.Mz,  binsResp.Amp.Dt.Mz, 1); %calcula polinomio de primeiro grau
+coefWhAmp = polyfit(binsResp.Speed.Dt.Wh,  binsResp.Amp.Dt.Wh, 1); %calcula polinomio de primeiro grau
+
+plot(binsResp.Speed.Dt.Mz, polyval(coefMzAmp, binsResp.Speed.Dt.Mz),'k-','linewidth',2)
+plot(binsResp.Speed.Dt.Wh, polyval(coefWhAmp, binsResp.Speed.Dt.Wh),'r-','linewidth',2)
+
+subplot(233)
+coefMzFre = polyfit(binsResp.Speed.Dt.Mz, binsResp.Fre.Dt.Mz, 1); %calcula polinomio de primeiro grau
+coefWhFre = polyfit(binsResp.Speed.Dt.Wh, binsResp.Fre.Dt.Wh, 1); %calcula polinomio de primeiro grau
+
+plot(binsResp.Speed.Dt.Mz, polyval(coefMzFre, binsResp.Speed.Dt.Mz), 'k-', 'linewidth', 2)
+plot(binsResp.Speed.Dt.Wh, polyval(coefWhFre, binsResp.Speed.Dt.Wh), 'r-', 'linewidth', 2)
+
+% Speed x Power corr
+subplot(235)
+plot(binsResp.Speed.Th.Mz, binsResp.Amp.Th.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
+hold on
+plot(binsResp.Speed.Th.Wh, binsResp.Amp.Th.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
+plot([speedthresh, speedthresh],[0 800],'k--')
+title(['Mz= ' num2str(rpBin.Th.R_Amp.Mz) '  Wh=' num2str(rpBin.Th.R_Amp.Wh)])
+xlabel('Speed (cm/s)')
+ylabel('Amplitude (mV)')
+xlim([0, 1200])
+box off
+axis square
+
+% Speed x Fre corr
+subplot(236)
+plot(binsResp.Speed.Th.Mz, binsResp.Fre.Th.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
+hold on
+plot(binsResp.Speed.Th.Wh, binsResp.Fre.Th.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
+plot([speedthresh, speedthresh],[6 10],'k--')
+title(['Mz= ' num2str(rpBin.Th.R_Fre.Mz) '  Wh=' num2str(rpBin.Th.R_Fre.Wh)])
+xlabel 'Speed (cm/s)'
+ylabel 'Frequency (Hz)'
+xlim([0, 1200])
+ylim([6, 10])
+box off
+axis square
+set(gcf,'color','w')
+
+subplot(235)
+coefMzAmp = polyfit(binsResp.Speed.Th.Mz,  binsResp.Amp.Th.Mz, 1); %calcula polinomio de primeiro grau
+coefWhAmp = polyfit(binsResp.Speed.Th.Wh,  binsResp.Amp.Th.Wh, 1); %calcula polinomio de primeiro grau
+
+plot(binsResp.Speed.Th.Mz, polyval(coefMzAmp, binsResp.Speed.Th.Mz),'k-','linewidth',2)
+plot(binsResp.Speed.Th.Wh, polyval(coefWhAmp, binsResp.Speed.Th.Wh),'r-','linewidth',2)
+
+subplot(236)
+coefMzFre = polyfit(binsResp.Speed.Th.Mz, binsResp.Fre.Th.Mz, 1); %calcula polinomio de primeiro grau
+coefWhFre = polyfit(binsResp.Speed.Th.Wh, binsResp.Fre.Th.Wh, 1); %calcula polinomio de primeiro grau
+
+plot(binsResp.Speed.Th.Mz, polyval(coefMzFre, binsResp.Speed.Th.Mz), 'k-', 'linewidth', 2)
+plot(binsResp.Speed.Th.Wh, polyval(coefWhFre, binsResp.Speed.Th.Wh), 'r-', 'linewidth', 2)
+if save
+    fileName = sprintf('%sCount_Amplitude_Frequency_figure2',savePath);
+    saveas(fig,fileName, 'epsc');
+    saveas(fig,fileName, 'png');
+end
