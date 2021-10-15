@@ -477,16 +477,212 @@ for chc=0:1
         title(sprintf("Mean PSD - %s\n%s", key, ttl))
         set(gca, ...
         'Box',      'off',...
-        'FontName', 'Helvetica',...
-        'TickDir',  'out', ...
+        'FontName', 'Arial',...
         'TickLength', [.02 .02],...
-        'YGrid',     'on',...
-        'GridLineStyle', '-.',...
         'XColor',    [.3 .3 .3],...
         'YColor',    [.3 .3 .3],...
         'LineWidth', 1,...
         'FontSize', 8, ...
         'FontWeight', 'bold',...
+        'TitleFontSizeMultiplier', 1.6,...
+        'LabelFontSizeMultiplier', 1.6,...
+        'XScale', 'linear') 
+    end
+
+    if save
+        fileName = sprintf('%sGroup_PSD_Pre_Pro_Std_%i',savePath, chc);
+        saveas(fig,fileName, 'epsc');
+        saveas(fig,fileName, 'png');
+    end
+end
+
+clearvars -except dataFull data srate dt numReads numSubReads savePath
+%% 3.1.6 - Group PSD + std WhxWh MzxMz
+clc
+save = 0;
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/PSD_Group/';
+
+for nData=2%:numReads
+    data = {struct('Mz', [], 'Wh', [], 'nTrials' , 0), struct('Mz', [], 'Wh', [], 'nTrials' , 0)}; 
+
+    for chc=1:2
+        for i=1:numSubReads
+            data{chc}.nTrials = data{chc}.nTrials + sum(dataFull{nData, i}.Choice == chc-1);
+            
+            dataTemp = dataFull{nData, i}.Pwelch;
+
+            cMask = dataTemp.Choice == chc-1;
+
+            data{chc}.Wh = [data{chc}.Wh; dataTemp.Psd.Wh(cMask, :)];
+            data{chc}.Mz = [data{chc}.Mz; dataTemp.Psd.Mz(cMask, :)];
+        end
+        
+        
+        key = "Pre";
+        if nData == 2
+            key = "Pos";
+        end
+        
+        meanWh = mean(data{chc}.Wh);
+        meanMz = mean(data{chc}.Mz);
+        % Std  
+        stdWh = std(data{chc}.Wh)/sqrt(data{chc}.nTrials); 
+        stdMz = std(data{chc}.Mz)/sqrt(data{chc}.nTrials);
+        
+    end
+end
+
+x = dataTemp.Frequency;
+fig = figure(1);
+fig.Position = [1 1 1600 1000];
+subplot(1,2,1);
+chc = 1;
+meanWh = mean(data{chc}.Wh);
+meanWh2 = mean(data{2}.Wh);
+% Std  
+stdWh = std(data{chc}.Wh)/sqrt(data{chc}.nTrials); 
+stdWh2 = std(data{2}.Wh)/sqrt(data{2}.nTrials); 
+plot(x, meanWh, 'g', 'linewidth', 2)
+hold on
+plot(x, meanWh2, 'b', 'linewidth', 2)
+
+plot(x, meanWh+stdWh, 'g--')
+plot(x, meanWh-stdWh, 'g--')
+plot(x, meanWh2+stdWh2, 'b--')
+plot(x, meanWh2-stdWh2, 'b--')
+xlim([0,12])
+xlim([0,12])
+ylim([0 , 50000])
+
+label1{1} = 'Wheel Correct';
+label1{2} = 'Wheel Miss';
+box off
+legend(label1,'location','bestoutside','orientation','horizontal')
+legend('boxoff')
+ylabel('Power')
+xlabel('Frequency(Hz)')
+%         title(sprintf("Mean PSD - %s\n%s", key, ttl))
+axis square
+set(gca, ...
+    'Box',      'off',...
+    'FontName', 'Arial',...
+    'TickLength', [.02 .02],...
+    'XColor',    [.3 .3 .3],...
+    'YColor',    [.3 .3 .3],...
+    'LineWidth', 1,...
+    'FontSize', 8, ...
+    'TitleFontSizeMultiplier', 1.6,...
+    'LabelFontSizeMultiplier', 1.6,...
+    'XScale', 'linear')
+
+subplot(1,2,2);
+chc = 1;
+meanWh = mean(data{chc}.Wh);
+meanWh2 = mean(data{2}.Wh);
+% Std  
+stdWh = std(data{chc}.Wh)/sqrt(data{chc}.nTrials); 
+stdWh2 = std(data{2}.Wh)/sqrt(data{2}.nTrials); 
+plot(x, meanWh, 'g', 'linewidth', 2)
+hold on
+plot(x, meanWh2, 'b', 'linewidth', 2)
+
+plot(x, meanWh+stdWh, 'g--')
+plot(x, meanWh-stdWh, 'g--')
+plot(x, meanWh2+stdWh2, 'b--')
+plot(x, meanWh2-stdWh2, 'b--')
+xlim([0,12])
+xlim([0,12])
+ylim([0 , 50000])
+
+label1{1} = 'Wheel Correct';
+label1{2} = 'Wheel Miss';
+box off
+legend(label1,'location','bestoutside','orientation','horizontal')
+legend('boxoff')
+ylabel('Power')
+xlabel('Frequency(Hz)')
+%         title(sprintf("Mean PSD - %s\n%s", key, ttl))
+axis square
+set(gca, ...
+    'Box',      'off',...
+    'FontName', 'Arial',...
+    'TickLength', [.02 .02],...
+    'XColor',    [.3 .3 .3],...
+    'YColor',    [.3 .3 .3],...
+    'LineWidth', 1,...
+    'FontSize', 8, ...
+    'TitleFontSizeMultiplier', 1.6,...
+    'LabelFontSizeMultiplier', 1.6,...
+    'XScale', 'linear')
+
+fileName = sprintf('%sGroup_PSD_Pre_Pos_Wh_x_Wh_Std',savePath);
+saveas(fig,fileName, 'epsc');
+saveas(fig,fileName, 'png');
+%%
+for chc=0:1
+    clf
+    
+    ttl = "Wrong choice";
+    if chc
+        ttl = "Right choice";
+    end
+    data = {struct('Mz', [], 'Wh', []), struct('Mz', [], 'Wh', [])}; 
+    for nData=1:numReads
+        nTrials = 0;
+        for i=1:numSubReads
+            nTrials = nTrials + size(dataFull{nData, i}.Choice, 1);
+
+            dataTemp = dataFull{nData, i}.Pwelch;
+
+            mzPsd = [];
+            mzFrq = [];
+            whPsd = [];
+            whFrq = [];
+       
+            cMask = dataTemp.Choice == chc;
+            
+            data{nData}.Mz = [data{nData}.Mz; dataTemp.Psd.Mz(cMask, :)];
+            data{nData}.Wh = [data{nData}.Wh; dataTemp.Psd.Wh(cMask, :)];
+        end
+
+        key = "Pre";
+        if nData == 2
+            key = "Pos";
+        end
+
+        fig = figure(nData);
+        fig.Position = [1 1 1600 1000];
+        subplot(1,2,nData);
+
+        x = dataTemp.Frequency;
+        meanWh = mean(data{nData}.Wh);
+        meanMz = mean(data{nData}.Mz);
+        % Std  
+        stdWh = std(data{nData}.Wh)/sqrt(nTrials); 
+        stdMz = std(data{nData}.Mz)/sqrt(nTrials);
+
+        plot(x, meanWh, 'r', x, meanMz, 'k')
+        hold on
+        plot(x, meanMz+stdMz, 'k--', x, meanMz-stdMz, 'k--')
+        plot(x, meanWh+stdWh, 'r--', x, meanWh-stdWh, 'r--')
+        xlim([0,12])
+        ylim([0 , 50000])
+        label1{1} = 'Wheel';
+        label1{2} = 'Maze';
+        box off
+        legend(label1,'location','bestoutside','orientation','horizontal')
+        legend('boxoff')
+        ylabel('Power')
+        xlabel('Frequency(Hz)')
+        title(sprintf("Mean PSD - %s\n%s", key, ttl))
+        set(gca, ...
+        'Box',      'off',...
+        'FontName', 'Arial',...
+        'TickLength', [.02 .02],...
+        'XColor',    [.3 .3 .3],...
+        'YColor',    [.3 .3 .3],...
+        'LineWidth', 1,...
+        'FontSize', 8, ...
         'TitleFontSizeMultiplier', 1.6,...
         'LabelFontSizeMultiplier', 1.6,...
         'XScale', 'linear') 
@@ -509,7 +705,7 @@ savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/Projeto
 for bnd=1:length(bands)
     data = {struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', []), struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', [])}; 
    
-    clf;
+%     clf;
     for nData=1:numReads
         nTrials = 0;
         for i=1:numSubReads
@@ -537,7 +733,7 @@ for bnd=1:length(bands)
             key = "Pos";
         end
 
-        fig = figure(1);
+        fig = figure(bnd);
         fig.Position = [1 1 1600 1000];
         subplot(1,2,nData);
 
@@ -580,11 +776,7 @@ for bnd=1:length(bands)
         title(sprintf("Mean PSD - %s - Band: %i - %i Hz\nMaze: h: %f p: %f\nWheel: h: %f p: %f", key, bands(bnd,1), bands(bnd,2), hMz, pMz, hWh, pWh))
         set(gca, ...
         'Box',      'off',...
-        'FontName', 'Helvetica',...
-        'TickDir',  'out', ...
         'TickLength', [.02 .02],...
-        'YGrid',     'on',...
-        'GridLineStyle', '-.',...
         'XColor',    [.3 .3 .3],...
         'YColor',    [.3 .3 .3],...
         'LineWidth', 1,...
@@ -602,14 +794,14 @@ for bnd=1:length(bands)
         saveas(fig,fileName, 'png');
     end
 end
-clearvars -except dataFull data srate dt numReads numSubReads savePath
+% clearvars -except dataFull data srate dt numReads numSubReads savePath
 %% 3.1.8 - Boxplot Delta x Theta
 
 clf
 save = 0;
 bands = [3,5; 6,10];
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Box/';
-for bnd=1%:length(bands)
+for bnd=1:length(bands)
     data = {struct('Mz', [], 'Wh', [], 'Freq', []), struct('Mz', [], 'Wh', [], 'Freq', [])}; 
     clf;
     for nData=1:numReads
@@ -624,8 +816,8 @@ for bnd=1%:length(bands)
 
             fMask = ( dataTemp.Frequency  > bands(bnd,1) ) & ( dataTemp.Frequency  < bands(bnd,2));
 
-            data{nData}.Mz = [data{nData}.Mz; dataTemp.Psd.Mz(fMask)];
-            data{nData}.Wh = [data{nData}.Wh; dataTemp.Psd.Wh(fMask)];
+            data{nData}.Mz = [data{nData}.Mz; dataTemp.Psd.Mz(:, fMask)];
+            data{nData}.Wh = [data{nData}.Wh; dataTemp.Psd.Wh(:, fMask)];
         end
 
         key = "Pre";
@@ -637,7 +829,7 @@ for bnd=1%:length(bands)
         fig.Position = [1 1 1600 1000];
         subplot(1,2,nData);
 
-        x = mean(data{nData}.Freq, 2);
+%         x = mean(data{nData}.Freq, 2);
         meanMz = mean(data{nData}.Mz,2);
         meanWh = mean(data{nData}.Wh,2);
 
@@ -652,7 +844,6 @@ for bnd=1%:length(bands)
         set(gca, ...
         'Box',      'off',...
         'FontName', 'Arial',...
-        'TickDir',  'out', ...
         'TickLength', [.02 .02],...
         'XColor',    [.3 .3 .3],...
         'YColor',    [.3 .3 .3],...
@@ -671,9 +862,9 @@ for bnd=1%:length(bands)
         saveas(fig,fileName, 'png');
     end
 end
-clearvars -except dataFull data srate dt numReads numSubReads savePath
+% clearvars -except dataFull data srate dt numReads numSubReads savePath
 
-%% 3.1.9 - Histogram Corr x Miss
+%% 3.1.9 - Histogram Corr x Miss - POWER
 
 clf
 save = 0;
@@ -726,13 +917,14 @@ for bnd=1:length(bands)
         stdWhE = std(meanWhE)/sqrt(nTrials);
         stdMzE = std(meanMzE)/sqrt(nTrials);
         
-        bns = 15;
-        if ( nData == 1)
-            bns = 4;
+        bns = [0:700:15000];
+        if bnd == 2
+            bns = [0:1500:35000];
         end
-        histogram(meanMzC,15, 'FaceColor',[0 1 0] )
+
+        histogram(meanWhC,bns, 'FaceColor',[0 1 0] )
         hold on
-        histogram(meanMzE,bns,'FaceColor',[0 0 1])
+        histogram(meanWhE,bns,'FaceColor',[0 0 1])
         [h, p, w] = swtest([meanWhC; meanWhE]);
         
         if h == 1
@@ -754,13 +946,11 @@ for bnd=1:length(bands)
         legend(label1,'location','bestoutside','orientation','horizontal')
         ylabel('Power')
         title(sprintf("Mean PSD - %s - Band: %i - %i Hz\nMaze: h: %f p: %f\nWheel: h: %f p: %f", key, bands(bnd,1), bands(bnd,2), hMz, pMz, hWh, pWh))
+        axis square
         set(gca, ...
         'Box',      'off',...
-        'FontName', 'Helvetica',...
-        'TickDir',  'in', ...
+        'FontName', 'Arial',...
         'TickLength', [.02 .02],...
-        'YGrid',     'on',...
-        'GridLineStyle', '-.',...
         'XColor',    [.3 .3 .3],...
         'YColor',    [.3 .3 .3],...
         'LineWidth', 1,...
@@ -774,15 +964,129 @@ for bnd=1:length(bands)
 
     if save
         fileName = sprintf('%sGroup_Histogram_PSD_Pre_Pos_%i_%i',savePath, bands(bnd,1), bands(bnd,2));
-        saveas(fig,fileName, 'epsc');
+        saveas(fig,fileName, 'svg');
         saveas(fig,fileName, 'png');
     end
 end
-% clearvars -except dataFull data srate dt numReads numSubReads savePath
+clearvars -except dataFull data srate dt numReads numSubReads savePath
+%% 3.1.9 - Histogram Corr x Miss - PEAK Freq
+
+clf
+save = 0;
+bands = [3,5; 6,10];
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Bar/';
+for bnd=1:length(bands)
+    data = {struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', []), struct('MzC', [], 'WhC', [], 'MzE', [], 'WhE', [], 'Freq', [])}; 
+   
+    clf;
+    for nData=1:numReads
+        nTrials = 0;
+        for i=1:numSubReads
+            dataTemp = dataFull{nData, i}.Pwelch;
+            nTrials = nTrials + size(dataFull{nData, i}.Choice, 1);
+
+            mzPsdC = [];
+            mzPsdE = [];
+            frq = [];
+            whPsdC = [];
+            whPsdE = [];
+
+            fMask = ( dataTemp.Frequency  > bands(bnd,1) ) & ( dataTemp.Frequency  < bands(bnd,2));
+            cMask = dataTemp.Choice == 0;
+
+            data{nData}.MzC = [data{nData}.MzC; dataTemp.Psd.Mz(~cMask, fMask)];
+            data{nData}.WhC = [data{nData}.WhC; dataTemp.Psd.Wh(~cMask, fMask)];
+            data{nData}.MzE = [data{nData}.MzE; dataTemp.Psd.Mz(cMask, fMask)];
+            data{nData}.WhE = [data{nData}.WhE; dataTemp.Psd.Wh(cMask, fMask)];
+
+
+        end
+
+        key = "Pre";
+        if nData == 2
+            key = "Pos";
+        end
+
+        fig = figure(1);
+        fig.Position = [1 1 1600 1000];
+        subplot(1,2,nData);
+
+%         x = mean(data{nData}.Freq, 2);
+        [maxLeft, idxWh] = max(data{nData}.WhC');
+        aux = dataTemp.Frequency(fMask);
+        peakWhC = aux(idxWh);
+%         [maxLeft, idxMz] = max(data{nData}.MzC');
+%         aux = dataTemp.Frequency(fMask);
+%         peakMzC = aux(idxMz);
+        [maxLeft, idxWh] = max(data{nData}.WhE');
+        aux = dataTemp.Frequency(fMask);
+        peakWhE = aux(idxWh);
+%         [maxLeft, idxMz] = max(data{nData}.MzE');
+%         aux = dataTemp.Frequency(fMask);
+%         peakMzE = aux(idxMz);
+
+        % Std  
+%         stdWhC = std(meanWhC)/sqrt(nTrials);
+%         stdMzC = std(meanMzC)/sqrt(nTrials);
+%         stdWhE = std(meanWhE)/sqrt(nTrials);
+%         stdMzE = std(meanMzE)/sqrt(nTrials);
+        
+        bns = [3:.15:5];
+        if bnd == 2
+            bns = [6:.35:10];
+        end
+
+        histogram(peakWhC,bns, 'FaceColor',[0 1 0] )
+        hold on
+        histogram(peakWhE,bns, 'FaceColor',[0 0 1])
+        [h, p, w] = swtest([peakWhC, peakWhE]);
+        
+%         if h == 1
+%             [ pMz, hMz ] = ranksum(meanMzC, meanMzE);
+%         else
+%             [ hMz, pMz ] = ttest2(meanMzC, meanMzE);
+%         end
+%         [h, p, w] = swtest([meanWhC; meanWhE]);
+        if h == 1
+            [ pWh, hWh ] = ranksum(peakWhC, peakWhE);
+        else
+            [ hWh, pWh ] = ttest2(peakWhC, peakWhE);
+        end
+        
+        box off
+        label1{1} = 'Correct';
+        label1{2} = 'Miss';
+        box off
+        legend(label1,'location','bestoutside','orientation','horizontal')
+        ylabel('Peak Freq')
+        title(sprintf("Mean PSD - %s - Band: %i - %i Hz\nWheel: h: %f p: %f", key, bands(bnd,1), bands(bnd,2), hWh, pWh))
+        axis square
+        set(gca, ...
+        'Box',      'off',...
+        'FontName', 'Arial',...
+        'TickLength', [.02 .02],...
+        'XColor',    [.3 .3 .3],...
+        'YColor',    [.3 .3 .3],...
+        'LineWidth', 1,...
+        'FontSize', 8, ...
+        'FontWeight', 'bold',...
+        'TitleFontSizeMultiplier', 1.6,...
+        'LabelFontSizeMultiplier', 1.6,...
+        'XScale', 'linear') 
+    end
+
+
+    if save
+        fileName = sprintf('%sGroup_Histogram_Peak_Freq_Pre_Pos_%i_%i',savePath, bands(bnd,1), bands(bnd,2));
+        saveas(fig,fileName, 'svg');
+        saveas(fig,fileName, 'png');
+    end
+end
+clearvars -except dataFull data srate dt numReads numSubReads savePath
 %% 3.1.10 - Combined ACG
 
 grIdx = [1, 2; 3, 4];
-save = 1;
+save = 0;
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/ACG/';
 
 for nData=1:numReads
@@ -1086,32 +1390,40 @@ clearvars -except dataFull data srate dt dataLineCount numReads numSubReads save
     speedthresh rpBin
 %%
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Max Power and Frequency/';
-save = 1; 
+save = 0; 
 
 clf
 fig = figure(1);
 fig.Position = [1 1 1600 1000];
-% fig.Position = [1 1 1600 1000];
 sgtitle('Delta x Theta')
-%histograms
+% histograms
 subplot(231)
 bins=[0:40:1000];
 histogram(speed.Trial.Mz,bins,'FaceColor',[0 0 0])
 hold on
 histogram(speed.Trial.Wh,bins,'FaceColor',[1 0 0])
-
 plot([speedthresh, speedthresh],[0 100],'k--')
 xlim([0 1000])
 xlabel 'Speed (cm/s)'
 ylabel 'Count (#)'
 title 'Trial Speed'
 axis square
-set(gca,...
-    'color','w',...
-    'Box', 'off')
+set(gca, ...
+    'Box',      'off',...
+    'FontName', 'Arial',...
+    'TickLength', [.02 .02],...
+    'XColor',    [.3 .3 .3],...
+    'YColor',    [.3 .3 .3],...
+    'LineWidth', 1,...
+    'FontSize', 8, ...
+    'FontWeight', 'bold',...
+    'TitleFontSizeMultiplier', 1.6,...
+    'LabelFontSizeMultiplier', 1.6,...
+    'XScale', 'linear') 
 
 % Speed x Power corr
 subplot(232)
+plotScatter(binsResp.Speed.Dt.Mz, binsResp.Amp.Dt.Mz, binsResp.Speed.Dt.Wh, binsResp.Amp.Dt.Wh, rpBin.Dt.R_Amp.Mz, rpBin.Dt.R_Amp.Wh)
 plot(binsResp.Speed.Dt.Mz, binsResp.Amp.Dt.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
 hold on
 plot(binsResp.Speed.Dt.Wh, binsResp.Amp.Dt.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
@@ -1120,9 +1432,20 @@ title(['Mz= ', num2str(rpBin.Dt.R_Amp.Mz), '  Wh=', num2str(rpBin.Dt.R_Amp.Wh)])
 xlabel('Speed (cm/s)')
 ylabel('Amplitude (mV)')
 xlim([0, 1200])
-box off
 axis square
-
+set(gca, ...
+    'Box',      'off',...
+    'FontName', 'Arial',...
+    'TickLength', [.02 .02],...
+    'XColor',    [.3 .3 .3],...
+    'YColor',    [.3 .3 .3],...
+    'LineWidth', 1,...
+    'FontSize', 8, ...
+    'FontWeight', 'bold',...
+    'TitleFontSizeMultiplier', 1.6,...
+    'LabelFontSizeMultiplier', 1.6,...
+    'XScale', 'linear') 
+    
 % Speed x Fre corr
 subplot(233)
 plot(binsResp.Speed.Dt.Mz, binsResp.Fre.Dt.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
@@ -1134,9 +1457,19 @@ xlabel 'Speed (cm/s)'
 ylabel 'Frequency (Hz)'
 xlim([0 1200])
 ylim([3 5])
-box off
 axis square
-set(gcf,'color','w')
+set(gca, ...
+    'Box',      'off',...
+    'FontName', 'Arial',...
+    'TickLength', [.02 .02],...
+    'XColor',    [.3 .3 .3],...
+    'YColor',    [.3 .3 .3],...
+    'LineWidth', 1,...
+    'FontSize', 8, ...
+    'FontWeight', 'bold',...
+    'TitleFontSizeMultiplier', 1.6,...
+    'LabelFontSizeMultiplier', 1.6,...
+    'XScale', 'linear') 
 
 subplot(232)
 coefMzAmp = polyfit(binsResp.Speed.Dt.Mz,  binsResp.Amp.Dt.Mz, 1); %calcula polinomio de primeiro grau
@@ -1162,9 +1495,19 @@ title(['Mz= ' num2str(rpBin.Th.R_Amp.Mz) '  Wh=' num2str(rpBin.Th.R_Amp.Wh)])
 xlabel('Speed (cm/s)')
 ylabel('Amplitude (mV)')
 xlim([0, 1200])
-box off
 axis square
-
+set(gca, ...
+    'Box',      'off',...
+    'FontName', 'Arial',...
+    'TickLength', [.02 .02],...
+    'XColor',    [.3 .3 .3],...
+    'YColor',    [.3 .3 .3],...
+    'LineWidth', 1,...
+    'FontSize', 8, ...
+    'FontWeight', 'bold',...
+    'TitleFontSizeMultiplier', 1.6,...
+    'LabelFontSizeMultiplier', 1.6,...
+    'XScale', 'linear') 
 % Speed x Fre corr
 subplot(236)
 plot(binsResp.Speed.Th.Mz, binsResp.Fre.Th.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
@@ -1176,9 +1519,19 @@ xlabel 'Speed (cm/s)'
 ylabel 'Frequency (Hz)'
 xlim([0, 1200])
 ylim([6, 10])
-box off
 axis square
-set(gcf,'color','w')
+set(gca, ...
+    'Box',      'off',...
+    'FontName', 'Arial',...
+    'TickLength', [.02 .02],...
+    'XColor',    [.3 .3 .3],...
+    'YColor',    [.3 .3 .3],...
+    'LineWidth', 1,...
+    'FontSize', 8, ...
+    'FontWeight', 'bold',...
+    'TitleFontSizeMultiplier', 1.6,...
+    'LabelFontSizeMultiplier', 1.6,...
+    'XScale', 'linear') 
 
 subplot(235)
 coefMzAmp = polyfit(binsResp.Speed.Th.Mz,  binsResp.Amp.Th.Mz, 1); %calcula polinomio de primeiro grau
@@ -1193,8 +1546,17 @@ coefWhFre = polyfit(binsResp.Speed.Th.Wh, binsResp.Fre.Th.Wh, 1); %calcula polin
 
 plot(binsResp.Speed.Th.Mz, polyval(coefMzFre, binsResp.Speed.Th.Mz), 'k-', 'linewidth', 2)
 plot(binsResp.Speed.Th.Wh, polyval(coefWhFre, binsResp.Speed.Th.Wh), 'r-', 'linewidth', 2)
+
 if save
     fileName = sprintf('%sCount_Amplitude_Frequency_figure2',savePath);
-    saveas(fig,fileName, 'epsc');
+    saveas(fig,fileName, 'svg');
     saveas(fig,fileName, 'png');
+end
+%%
+for nData=1:numReads
+    nTrials = 0;
+    for i=1:10
+        nTrials = nTrials + length(dataFull{nData, i}.Choice);
+    end
+    nTrials
 end
