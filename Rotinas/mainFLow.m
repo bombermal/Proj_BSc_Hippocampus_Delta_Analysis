@@ -125,7 +125,6 @@ absolutFilePath = ls(fullfile(sprintf('%sPre/', loadPath), '*.mat'));
 for file=1:size(absolutFilePath, 1)
     fileName = absolutFilePath(file, :);
     dataFull{1, file} = load(strcat(loadPath, 'Pre\', fileName));
-%     dataFull{1, file} = dataFull{1, file}.dataSingle;
     sprintf('%s - Pre - File: %d', subPath(idx), file)
 end
 % Load Pos
@@ -133,13 +132,12 @@ absolutFilePath = ls(fullfile(sprintf('%sPos/', loadPath), '*.mat'));
 for file=1:size(absolutFilePath, 1)
     fileName = absolutFilePath(file, :);
     dataFull{2, file} = load(strcat(loadPath, 'Pos\', fileName));
-%     dataFull{2, file} = dataFull{2, file}.dataSingle;
     sprintf('%s - Pos - File: %d', subPath(idx), file)
 end
 [numReads, numSubReads ] = size(dataFull);
 clearvars -except dataFull srate dt numReads numSubReads 
 toc
-%% 3 - Analyse
+%% 3 - Analyse - Calc 
 % 3.1 - Error proportion
 prop = {};
 prop{1}.Hit = [];
@@ -197,8 +195,8 @@ if save
     fclose(fileID)
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath prop
-%% 3.1.1 Plot proportion
-% Save path for results
+%% 3.1.1 Plot proportion - BarPlot - Fig X
+% Save path for results 
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
 
 save = 0;
@@ -232,8 +230,7 @@ if save
     saveas(fig,fileName, 'png');
 end
 clearvars -except dataFull srate dt dataLineCount numReads numSubReads savePath prop
-%%
-% 3.1.2 - Load each pwelch array and concat each session
+%% 3.1.2 - Load each pwelch array and concat each session - Print
 % Save results boolean, 1: YES, 0: NO
 save = 0;
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
@@ -274,7 +271,7 @@ if save
     fclose(fileID)
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.3 Process Max power, max freq, speed
+%% 3.1.3 Process Max power, max freq, speed - Calc
 % Create a structure and save all values in
 
 lOne = struct("Wh", [], "Mz", []);
@@ -311,7 +308,7 @@ for nData=1:numReads
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.4 - Plot max power, max freq and speed
+%% 3.1.4 - Plot max power, max freq and speed - ScatterPLot - Fig X
 clf
 whS = [];
 whP = [];
@@ -366,7 +363,7 @@ for chc=0:1
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.5 - Max Power and Max Frequency analytics - All_Trials_Rank_n_Ttest
+%% 3.1.5 - Max Power and Max Frequency analytics - All_Trials_Rank_n_Ttest - Print
 save = 0;
 for chc=0:1
     mzPreFreq = struct('List', [], 'Name', 'Frequency', 'Key', 'Pre', 'Job', 'Mz');
@@ -415,7 +412,7 @@ for chc=0:1
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.6 - Group PSD + std
+%% 3.1.6 - Group PSD + std - Lineplot - Fig 1
 clc
 save = 0;
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/PSD_Group/';
@@ -497,12 +494,12 @@ for chc=0:1
 end
 
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.6 - Group PSD + std WhxWh MzxMz
+%% 3.1.7 - Group PSD + std - All 4 - Mz n Wh - Correct x Miss - Fig X
 clc
 save = 0;
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/PSD_Group/';
 
-for nData=2%:numReads
+for nData=1:numReads
     data = {struct('Mz', [], 'Wh', [], 'nTrials' , 0), struct('Mz', [], 'Wh', [], 'nTrials' , 0)}; 
 
     for chc=1:2
@@ -517,12 +514,6 @@ for nData=2%:numReads
             data{chc}.Mz = [data{chc}.Mz; dataTemp.Psd.Mz(cMask, :)];
         end
         
-        
-        key = "Pre";
-        if nData == 2
-            key = "Pos";
-        end
-        
         meanWh = mean(data{chc}.Wh);
         meanMz = mean(data{chc}.Mz);
         % Std  
@@ -530,173 +521,29 @@ for nData=2%:numReads
         stdMz = std(data{chc}.Mz)/sqrt(data{chc}.nTrials);
         
     end
-end
-
-x = dataTemp.Frequency;
-fig = figure(1);
-fig.Position = [1 1 1600 1000];
-subplot(1,2,1);
-chc = 1;
-meanWh = mean(data{chc}.Wh);
-meanWh2 = mean(data{2}.Wh);
-% Std  
-stdWh = std(data{chc}.Wh)/sqrt(data{chc}.nTrials); 
-stdWh2 = std(data{2}.Wh)/sqrt(data{2}.nTrials); 
-plot(x, meanWh, 'g', 'linewidth', 2)
-hold on
-plot(x, meanWh2, 'b', 'linewidth', 2)
-
-plot(x, meanWh+stdWh, 'g--')
-plot(x, meanWh-stdWh, 'g--')
-plot(x, meanWh2+stdWh2, 'b--')
-plot(x, meanWh2-stdWh2, 'b--')
-xlim([0,12])
-xlim([0,12])
-ylim([0 , 50000])
-
-label1{1} = 'Wheel Correct';
-label1{2} = 'Wheel Miss';
-box off
-legend(label1,'location','bestoutside','orientation','horizontal')
-legend('boxoff')
-ylabel('Power')
-xlabel('Frequency(Hz)')
-%         title(sprintf("Mean PSD - %s\n%s", key, ttl))
-axis square
-set(gca, ...
-    'Box',      'off',...
-    'FontName', 'Arial',...
-    'TickLength', [.02 .02],...
-    'XColor',    [.3 .3 .3],...
-    'YColor',    [.3 .3 .3],...
-    'LineWidth', 1,...
-    'FontSize', 8, ...
-    'TitleFontSizeMultiplier', 1.6,...
-    'LabelFontSizeMultiplier', 1.6,...
-    'XScale', 'linear')
-
-subplot(1,2,2);
-chc = 1;
-meanWh = mean(data{chc}.Wh);
-meanWh2 = mean(data{2}.Wh);
-% Std  
-stdWh = std(data{chc}.Wh)/sqrt(data{chc}.nTrials); 
-stdWh2 = std(data{2}.Wh)/sqrt(data{2}.nTrials); 
-plot(x, meanWh, 'g', 'linewidth', 2)
-hold on
-plot(x, meanWh2, 'b', 'linewidth', 2)
-
-plot(x, meanWh+stdWh, 'g--')
-plot(x, meanWh-stdWh, 'g--')
-plot(x, meanWh2+stdWh2, 'b--')
-plot(x, meanWh2-stdWh2, 'b--')
-xlim([0,12])
-xlim([0,12])
-ylim([0 , 50000])
-
-label1{1} = 'Wheel Correct';
-label1{2} = 'Wheel Miss';
-box off
-legend(label1,'location','bestoutside','orientation','horizontal')
-legend('boxoff')
-ylabel('Power')
-xlabel('Frequency(Hz)')
-%         title(sprintf("Mean PSD - %s\n%s", key, ttl))
-axis square
-set(gca, ...
-    'Box',      'off',...
-    'FontName', 'Arial',...
-    'TickLength', [.02 .02],...
-    'XColor',    [.3 .3 .3],...
-    'YColor',    [.3 .3 .3],...
-    'LineWidth', 1,...
-    'FontSize', 8, ...
-    'TitleFontSizeMultiplier', 1.6,...
-    'LabelFontSizeMultiplier', 1.6,...
-    'XScale', 'linear')
-
-fileName = sprintf('%sGroup_PSD_Pre_Pos_Wh_x_Wh_Std',savePath);
-saveas(fig,fileName, 'epsc');
-saveas(fig,fileName, 'png');
-%%
-for chc=0:1
-    clf
     
-    ttl = "Wrong choice";
-    if chc
-        ttl = "Right choice";
+    key = "Pre";
+    fIdx = 0;
+    if nData == 2
+        key = "Pos";
+        fIdx = 2;
     end
-    data = {struct('Mz', [], 'Wh', []), struct('Mz', [], 'Wh', [])}; 
-    for nData=1:numReads
-        nTrials = 0;
-        for i=1:numSubReads
-            nTrials = nTrials + size(dataFull{nData, i}.Choice, 1);
-
-            dataTemp = dataFull{nData, i}.Pwelch;
-
-            mzPsd = [];
-            mzFrq = [];
-            whPsd = [];
-            whFrq = [];
-       
-            cMask = dataTemp.Choice == chc;
-            
-            data{nData}.Mz = [data{nData}.Mz; dataTemp.Psd.Mz(cMask, :)];
-            data{nData}.Wh = [data{nData}.Wh; dataTemp.Psd.Wh(cMask, :)];
-        end
-
-        key = "Pre";
-        if nData == 2
-            key = "Pos";
-        end
-
-        fig = figure(nData);
-        fig.Position = [1 1 1600 1000];
-        subplot(1,2,nData);
-
-        x = dataTemp.Frequency;
-        meanWh = mean(data{nData}.Wh);
-        meanMz = mean(data{nData}.Mz);
-        % Std  
-        stdWh = std(data{nData}.Wh)/sqrt(nTrials); 
-        stdMz = std(data{nData}.Mz)/sqrt(nTrials);
-
-        plot(x, meanWh, 'r', x, meanMz, 'k')
-        hold on
-        plot(x, meanMz+stdMz, 'k--', x, meanMz-stdMz, 'k--')
-        plot(x, meanWh+stdWh, 'r--', x, meanWh-stdWh, 'r--')
-        xlim([0,12])
-        ylim([0 , 50000])
-        label1{1} = 'Wheel';
-        label1{2} = 'Maze';
-        box off
-        legend(label1,'location','bestoutside','orientation','horizontal')
-        legend('boxoff')
-        ylabel('Power')
-        xlabel('Frequency(Hz)')
-        title(sprintf("Mean PSD - %s\n%s", key, ttl))
-        set(gca, ...
-        'Box',      'off',...
-        'FontName', 'Arial',...
-        'TickLength', [.02 .02],...
-        'XColor',    [.3 .3 .3],...
-        'YColor',    [.3 .3 .3],...
-        'LineWidth', 1,...
-        'FontSize', 8, ...
-        'TitleFontSizeMultiplier', 1.6,...
-        'LabelFontSizeMultiplier', 1.6,...
-        'XScale', 'linear') 
-    end
-
-    if save
-        fileName = sprintf('%sGroup_PSD_Pre_Pro_Std_%i',savePath, chc);
-        saveas(fig,fileName, 'epsc');
-        saveas(fig,fileName, 'png');
-    end
+    
+    % All 4 Pre x Pos - Mz N Wheel 
+    x = dataTemp.Frequency;
+    fig = figure(1);
+    fig.Position = [1 1 1600 1000];
+    
+    plotPSDWhxMz(1+fIdx, x, data{1}.Wh, data{2}.Wh, data{1}.nTrials, data{2}.nTrials, ["Wheel Wrong", "Wheel Correct"], key);
+    plotPSDWhxMz(2+fIdx, x, data{1}.Mz, data{2}.Mz, data{1}.nTrials, data{2}.nTrials, ["Maze Wrong", "Maze Correct"], key);
 end
 
-clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.7 - err bar Corr x Miss
+if save
+    fileName = sprintf('%sGroup_PSD_Pre_Pos_all_Std',savePath);
+    saveas(fig,fileName, 'epsc');
+    saveas(fig,fileName, 'png');
+end
+%% 3.1.8 - err bar Corr x Miss - Barplot - Fig X
 
 clf
 save = 0;
@@ -794,8 +641,8 @@ for bnd=1:length(bands)
         saveas(fig,fileName, 'png');
     end
 end
-% clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.8 - Boxplot Delta x Theta
+clearvars -except dataFull data srate dt numReads numSubReads savePath
+%% 3.1.9 - Boxplot Delta x Theta - Fig 1
 
 clf
 save = 0;
@@ -862,9 +709,8 @@ for bnd=1:length(bands)
         saveas(fig,fileName, 'png');
     end
 end
-% clearvars -except dataFull data srate dt numReads numSubReads savePath
-
-%% 3.1.9 - Histogram Corr x Miss - POWER
+clearvars -except dataFull data srate dt numReads numSubReads savePath
+%% 3.1.9 - Histogram Corr x Miss - POWER - Fig X
 
 clf
 save = 0;
@@ -969,8 +815,7 @@ for bnd=1:length(bands)
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.9 - Histogram Corr x Miss - PEAK Freq
-
+%% 3.1.10 - Histogram Corr x Miss - PEAK Freq - Fig X
 clf
 save = 0;
 bands = [3,5; 6,10];
@@ -1083,7 +928,7 @@ for bnd=1:length(bands)
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.10 - Combined ACG
+%% 3.1.11 - Combined ACG - Imagesc - Fig 1 n 3
 
 grIdx = [1, 2; 3, 4];
 save = 0;
@@ -1105,8 +950,8 @@ for nData=1:numReads
             LFPWh = dataTemp.Lfp{lp}(whMask);
 
             % Capture snippet
-            [acgMz, lagsMz] = xcorr(LFPMz,'coef', 1000);    
-            [acgWh, lagsWh] = xcorr(LFPWh,'coef', 1000);    
+            [acgMz, lagsMz] = xcorr(LFPMz,'coef', 500);    
+            [acgWh, lagsWh] = xcorr(LFPWh,'coef', 500);    
 
             auxMzAcgCombine = [auxMzAcgCombine, acgMz];
             auxWhAcgCombine = [auxWhAcgCombine, acgWh];
@@ -1135,7 +980,7 @@ for nData=1:numReads
     yyaxis left
     plotImagesc(grIdx(nData, 2), lagsWh, auxWhAcgCombine', 'Wh', ttlKey)
     yyaxis right
-    plot(xLimValue, mean(auxMzAcgCombine, 2), 'w')
+    plot(xLimValue, mean(auxWhAcgCombine, 2), 'w')
 end
 if save
     fileName = sprintf('%sCombined_Trial_Imagesc_ACG_LFP', savePath);
@@ -1144,167 +989,15 @@ if save
 end 
 
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.2.6 - Trial LFP
-clf
-save = 0;
-savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
-for nData=1:numReads
-    for i=1:dataLineCount(nData)
-        
-        dataTemp = dataFull{nData, i}.Pwelch.Lfp;
-        lap = dataTemp.Lap;
-        uniqueLap = unique(lap);
-        
-        tam = length(uniqueLap);
-        guide = repmat([1:1:18], 1, 5);
-        
-        FigList = findall(groot, 'Type', 'figure');
-        for iFig = 1:numel(FigList)
-            try
-                clf(FigList(iFig));
-            catch
-                % Nothing to do
-            end
-        end
-        for lp=1:length(uniqueLap)
-            lapMask = dataTemp.Lap == uniqueLap(lp);
-            jobMask = dataTemp.Job == "Mz";
-            
-            key = 'Pre';
-            ttl = sprintf('LFP - Pre muscimol\n%s',dataFull{nData,i}.Name(1:16));
-            if nData == 2
-                key = 'Pos';
-                ttl = sprintf('LFP - Pos muscimol\n%s',dataFull{nData,i}.Name(1:16));
-            end
-
-            LFPMz = dataTemp.Lfp(lapMask & jobMask);
-            LFPWh = dataTemp.Lfp(lapMask & ~jobMask);
-
-            % Plot           
-            if (lp <= 18)
-                figA = plotLFP(1, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, 'Mz');
-                figB = plotLFP(2, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPWh, 'Wh');
-            elseif (lp > 18) && (lp <= 36)
-                figC = plotLFP(3, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, 'Mz');
-                figD = plotLFP(4, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPWh, 'Wh');
-            elseif (lp > 36) && (lp <= 54)
-                figE = plotLFP(5, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, 'Mz');
-                figF = plotLFP(6, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPWh, 'Wh');
-            elseif (lp > 54)
-                figG = plotLFP(7, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, 'Mz');
-                figH = plotLFP(8, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPWh, 'Wh');
-            end
-  
-            sprintf('%d %d %i',nData, i, lp)
-        end
-        
-        if save
-            
-            parts = [figA, figB];
-            if exist('figC')
-                parts = [parts; figC, figD];
-            end
-            if exist('figE')
-                parts = [parts; figE, figF];
-            end
-            if exist('figG')
-                parts = [parts; figG, figH];
-            end
-
-            for n=1:size(parts, 1)
-                fileNameMZ = sprintf('%sLFP_Trial/Combined_Individual_%s_%s_LFP_MZ_PART_%i', savePath, dataFull{nData,i}.Name(1:16), key, n);
-                fileNameWH = sprintf('%sLFP_Trial/Combined_Individual_%s_%s_LFP_WH_PART_%i', savePath, dataFull{nData,i}.Name(1:16), key, n);
-                saveas(parts(n, 1),fileNameMZ, 'epsc');
-                saveas(parts(n, 1),fileNameMZ, 'png');
-                saveas(parts(n, 2),fileNameWH, 'epsc');
-                saveas(parts(n, 2),fileNameWH, 'png');
-            end
-
-        end      
-    end
-end
-clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath
-%% 3.2.7 - Trial PSD
-clf
-save = 1;
-savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
-for nData=1:numReads
-    for i=1:dataLineCount(nData)
-        
-        dataTemp = dataFull{nData, i}.Pwelch;
-        lap = dataTemp.Lap;
-        uniqueLap = unique(lap);
-        
-        tam = length(uniqueLap);
-        guide = repmat([1:1:18], 1, 5);
-        
-        FigList = findall(groot, 'Type', 'figure');
-        for iFig = 1:numel(FigList)
-            try
-                clf(FigList(iFig));
-            catch
-                % Nothing to do
-            end
-        end
-        for lp=1:length(uniqueLap)
-            lapMask = dataTemp.Lap == uniqueLap(lp);
-            jobMask = dataTemp.Job == "Mz";
-            
-            key = 'Pre';
-            ttl = sprintf('PSD - Pre muscimol\n%s',dataFull{nData,i}.Name(1:16));
-            if nData == 2
-                key = 'Pos';
-                ttl = sprintf('PSD - Pos muscimol\n%s',dataFull{nData,i}.Name(1:16));
-            end
-
-            LFPMz = dataTemp.Psd(lapMask & jobMask);
-            frequ = dataTemp.Frequency(lapMask & jobMask);
-            LFPWh = dataTemp.Psd(lapMask & ~jobMask);
-
-            % Plot           
-            if (lp <= 18)
-                
-                figA = plotPSD(1, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, LFPWh, frequ);
-            elseif (lp > 18) && (lp <= 36)
-                figB = plotPSD(2, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, LFPWh, frequ);
-            elseif (lp > 36) && (lp <= 54)
-                figC = plotPSD(3, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, LFPWh, frequ);
-            elseif (lp > 54)
-                figD = plotPSD(4, ttl, min(9,tam/2), guide(lp), uniqueLap(lp), LFPMz, LFPWh, frequ);
-            end
-  
-            sprintf('%d %d %i',nData, i, lp)
-        end
-        
-        if save
-            
-            parts = [figA];
-            if exist('figB')
-                parts = [parts; figB];
-            end
-            if exist('figC')
-                parts = [parts; figC];
-            end
-            if exist('figD')
-                parts = [parts; figD];
-            end
-
-            for n=1:size(parts, 1)
-                fileNameMZ = sprintf('%sPSD_Trial/Combined_Individual_%s_%s_PSD_PART_%i', savePath, dataFull{nData,i}.Name(1:16), key, n);
-                saveas(parts(n, 1),fileNameMZ, 'epsc');
-                saveas(parts(n, 1),fileNameMZ, 'png');
-            end
-
-        end      
-    end
-end
-clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath
-%% 3.2.8 Figure 2
+%% 3.2.1 Figure 2 - Calc
 speedthresh=100;
 oneStep = struct("Mz", [], "Wh", []);
 secStep = struct('Trial', oneStep, 'Full', oneStep);
 
-for nData=1%:nReads
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Max Power and Frequency/';
+save = 1; 
+
+for nData=1:numReads
     respDt = struct('Amp', secStep, 'Fre', secStep);
     respTh = struct('Amp', secStep, 'Fre', secStep);
     speed = secStep;
@@ -1342,221 +1035,107 @@ for nData=1%:nReads
             
         end
     end
-end
-
-oneStep = struct("Mz", [], "Wh", []);
-secondStep = struct('Dt', oneStep, 'Th', oneStep);
-binsResp = struct('Speed', secondStep, 'Amp', secondStep,'Fre', secondStep);
-thirdStep = struct('R_Amp', oneStep, 'P_Amp', oneStep, 'R_Fre', oneStep, 'P_Fre', oneStep);
-rpBin = struct('Dt', thirdStep, 'Th', thirdStep);
-
-t=5; %bin in sec
-count=1;
-for i=1:(t*srate):length(speed.Full.Mz)-(t*srate)
-    try
-        binsResp.Speed.Dt.Mz = [binsResp.Speed.Dt.Mz, mean(speed.Full.Mz(count:count+(t*srate))) ];
-        binsResp.Amp.Dt.Mz = [binsResp.Amp.Dt.Mz, mean(respDt.Amp.Full.Mz(count:count+(t*srate))) ];
-        binsResp.Fre.Dt.Mz = [binsResp.Fre.Dt.Mz, mean(respDt.Fre.Full.Mz(count:count+(t*srate))) ];
-        
-        binsResp.Speed.Th.Mz = [binsResp.Speed.Th.Mz, mean(speed.Full.Mz(count:count+(t*srate))) ];
-        binsResp.Amp.Th.Mz = [binsResp.Amp.Th.Mz, mean(respTh.Amp.Full.Mz(count:count+(t*srate))) ];
-        binsResp.Fre.Th.Mz = [binsResp.Fre.Th.Mz, mean(respTh.Fre.Full.Mz(count:count+(t*srate))) ];
-        count=count+(t*srate);
-    end
-end
-[rpBin.Dt.R_Amp.Mz, rpBin.Dt.P_Amp.Mz] = corr( binsResp.Speed.Dt.Mz', binsResp.Amp.Dt.Mz');
-[rpBin.Dt.R_Fre.Mz, rpBin.Dt.P_Fre.Mz] = corr( binsResp.Speed.Dt.Mz', binsResp.Fre.Dt.Mz');
-[rpBin.Th.R_Amp.Mz, rpBin.Th.P_Amp.Mz] = corr( binsResp.Speed.Th.Mz', binsResp.Amp.Th.Mz');
-[rpBin.Th.R_Fre.Mz, rpBin.Th.P_Fre.Mz] = corr( binsResp.Speed.Th.Mz', binsResp.Fre.Th.Mz');
-
-count=1;
-for i=1:(t*srate):length(speed.Full.Wh)-(t*srate)
-    try
-        binsResp.Speed.Dt.Wh = [binsResp.Speed.Dt.Wh, mean(speed.Full.Wh(count:count+(t*srate))) ];
-        binsResp.Amp.Dt.Wh = [binsResp.Amp.Dt.Wh, mean(respDt.Amp.Full.Wh(count:count+(t*srate))) ];
-        binsResp.Fre.Dt.Wh = [binsResp.Fre.Dt.Wh, mean(respDt.Fre.Full.Wh(count:count+(t*srate))) ];
-        
-        binsResp.Speed.Th.Wh = [binsResp.Speed.Th.Wh, mean(speed.Full.Wh(count:count+(t*srate))) ];
-        binsResp.Amp.Th.Wh = [binsResp.Amp.Th.Wh, mean(respTh.Amp.Full.Wh(count:count+(t*srate))) ];
-        binsResp.Fre.Th.Wh = [binsResp.Fre.Th.Wh, mean(respTh.Fre.Full.Wh(count:count+(t*srate))) ];
-        count=count+(t*srate);
-    end
-end
-[rpBin.Dt.R_Amp.Wh, rpBin.Dt.P_Amp.Wh] = corr( binsResp.Speed.Dt.Wh', binsResp.Amp.Dt.Wh');
-[rpBin.Dt.R_Fre.Wh, rpBin.Dt.P_Fre.Wh] = corr( binsResp.Speed.Dt.Wh', binsResp.Fre.Dt.Wh');
-[rpBin.Th.R_Amp.Wh, rpBin.Th.P_Amp.Wh] = corr( binsResp.Speed.Th.Wh', binsResp.Amp.Th.Wh');
-[rpBin.Th.R_Fre.Wh, rpBin.Th.P_Fre.Wh] = corr( binsResp.Speed.Th.Wh', binsResp.Fre.Th.Wh');
-clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath binsResp speed...
-    speedthresh rpBin
-%%
-savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Max Power and Frequency/';
-save = 0; 
-
-clf
-fig = figure(1);
-fig.Position = [1 1 1600 1000];
-sgtitle('Delta x Theta')
-% histograms
-subplot(231)
-bins=[0:40:1000];
-histogram(speed.Trial.Mz,bins,'FaceColor',[0 0 0])
-hold on
-histogram(speed.Trial.Wh,bins,'FaceColor',[1 0 0])
-plot([speedthresh, speedthresh],[0 100],'k--')
-xlim([0 1000])
-xlabel 'Speed (cm/s)'
-ylabel 'Count (#)'
-title 'Trial Speed'
-axis square
-set(gca, ...
-    'Box',      'off',...
-    'FontName', 'Arial',...
-    'TickLength', [.02 .02],...
-    'XColor',    [.3 .3 .3],...
-    'YColor',    [.3 .3 .3],...
-    'LineWidth', 1,...
-    'FontSize', 8, ...
-    'FontWeight', 'bold',...
-    'TitleFontSizeMultiplier', 1.6,...
-    'LabelFontSizeMultiplier', 1.6,...
-    'XScale', 'linear') 
-
-% Speed x Power corr
-subplot(232)
-plotScatter(binsResp.Speed.Dt.Mz, binsResp.Amp.Dt.Mz, binsResp.Speed.Dt.Wh, binsResp.Amp.Dt.Wh, rpBin.Dt.R_Amp.Mz, rpBin.Dt.R_Amp.Wh)
-plot(binsResp.Speed.Dt.Mz, binsResp.Amp.Dt.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
-hold on
-plot(binsResp.Speed.Dt.Wh, binsResp.Amp.Dt.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
-plot([speedthresh, speedthresh],[0 800],'k--')
-title(['Mz= ', num2str(rpBin.Dt.R_Amp.Mz), '  Wh=', num2str(rpBin.Dt.R_Amp.Wh)])
-xlabel('Speed (cm/s)')
-ylabel('Amplitude (mV)')
-xlim([0, 1200])
-axis square
-set(gca, ...
-    'Box',      'off',...
-    'FontName', 'Arial',...
-    'TickLength', [.02 .02],...
-    'XColor',    [.3 .3 .3],...
-    'YColor',    [.3 .3 .3],...
-    'LineWidth', 1,...
-    'FontSize', 8, ...
-    'FontWeight', 'bold',...
-    'TitleFontSizeMultiplier', 1.6,...
-    'LabelFontSizeMultiplier', 1.6,...
-    'XScale', 'linear') 
     
-% Speed x Fre corr
-subplot(233)
-plot(binsResp.Speed.Dt.Mz, binsResp.Fre.Dt.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
-hold on
-plot(binsResp.Speed.Dt.Wh, binsResp.Fre.Dt.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
-plot([speedthresh speedthresh],[0 5],'k--')
-title(['Mz= ' num2str(rpBin.Dt.R_Fre.Mz) '  Wh=' num2str(rpBin.Dt.R_Fre.Wh)])
-xlabel 'Speed (cm/s)'
-ylabel 'Frequency (Hz)'
-xlim([0 1200])
-ylim([3 5])
-axis square
-set(gca, ...
-    'Box',      'off',...
-    'FontName', 'Arial',...
-    'TickLength', [.02 .02],...
-    'XColor',    [.3 .3 .3],...
-    'YColor',    [.3 .3 .3],...
-    'LineWidth', 1,...
-    'FontSize', 8, ...
-    'FontWeight', 'bold',...
-    'TitleFontSizeMultiplier', 1.6,...
-    'LabelFontSizeMultiplier', 1.6,...
-    'XScale', 'linear') 
+    oneStep = struct("Mz", [], "Wh", []);
+    secondStep = struct('Dt', oneStep, 'Th', oneStep);
+    binsResp = struct('Speed', secondStep, 'Amp', secondStep,'Fre', secondStep);
+    thirdStep = struct('R_Amp', oneStep, 'P_Amp', oneStep, 'R_Fre', oneStep, 'P_Fre', oneStep);
+    rpBin = struct('Dt', thirdStep, 'Th', thirdStep);
 
-subplot(232)
-coefMzAmp = polyfit(binsResp.Speed.Dt.Mz,  binsResp.Amp.Dt.Mz, 1); %calcula polinomio de primeiro grau
-coefWhAmp = polyfit(binsResp.Speed.Dt.Wh,  binsResp.Amp.Dt.Wh, 1); %calcula polinomio de primeiro grau
+    t=5; %bin in sec
+    count=1;
+    for i=1:(t*srate):length(speed.Full.Mz)-(t*srate)
+        try
+            binsResp.Speed.Dt.Mz = [binsResp.Speed.Dt.Mz, mean(speed.Full.Mz(count:count+(t*srate))) ];
+            binsResp.Amp.Dt.Mz = [binsResp.Amp.Dt.Mz, mean(respDt.Amp.Full.Mz(count:count+(t*srate))) ];
+            binsResp.Fre.Dt.Mz = [binsResp.Fre.Dt.Mz, mean(respDt.Fre.Full.Mz(count:count+(t*srate))) ];
 
-plot(binsResp.Speed.Dt.Mz, polyval(coefMzAmp, binsResp.Speed.Dt.Mz),'k-','linewidth',2)
-plot(binsResp.Speed.Dt.Wh, polyval(coefWhAmp, binsResp.Speed.Dt.Wh),'r-','linewidth',2)
-
-subplot(233)
-coefMzFre = polyfit(binsResp.Speed.Dt.Mz, binsResp.Fre.Dt.Mz, 1); %calcula polinomio de primeiro grau
-coefWhFre = polyfit(binsResp.Speed.Dt.Wh, binsResp.Fre.Dt.Wh, 1); %calcula polinomio de primeiro grau
-
-plot(binsResp.Speed.Dt.Mz, polyval(coefMzFre, binsResp.Speed.Dt.Mz), 'k-', 'linewidth', 2)
-plot(binsResp.Speed.Dt.Wh, polyval(coefWhFre, binsResp.Speed.Dt.Wh), 'r-', 'linewidth', 2)
-
-% Speed x Power corr
-subplot(235)
-plot(binsResp.Speed.Th.Mz, binsResp.Amp.Th.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
-hold on
-plot(binsResp.Speed.Th.Wh, binsResp.Amp.Th.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
-plot([speedthresh, speedthresh],[0 800],'k--')
-title(['Mz= ' num2str(rpBin.Th.R_Amp.Mz) '  Wh=' num2str(rpBin.Th.R_Amp.Wh)])
-xlabel('Speed (cm/s)')
-ylabel('Amplitude (mV)')
-xlim([0, 1200])
-axis square
-set(gca, ...
-    'Box',      'off',...
-    'FontName', 'Arial',...
-    'TickLength', [.02 .02],...
-    'XColor',    [.3 .3 .3],...
-    'YColor',    [.3 .3 .3],...
-    'LineWidth', 1,...
-    'FontSize', 8, ...
-    'FontWeight', 'bold',...
-    'TitleFontSizeMultiplier', 1.6,...
-    'LabelFontSizeMultiplier', 1.6,...
-    'XScale', 'linear') 
-% Speed x Fre corr
-subplot(236)
-plot(binsResp.Speed.Th.Mz, binsResp.Fre.Th.Mz, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
-hold on
-plot(binsResp.Speed.Th.Wh, binsResp.Fre.Th.Wh, 'or', 'markerfacecolor', 'r', 'markersize', 2)
-plot([speedthresh, speedthresh],[6 10],'k--')
-title(['Mz= ' num2str(rpBin.Th.R_Fre.Mz) '  Wh=' num2str(rpBin.Th.R_Fre.Wh)])
-xlabel 'Speed (cm/s)'
-ylabel 'Frequency (Hz)'
-xlim([0, 1200])
-ylim([6, 10])
-axis square
-set(gca, ...
-    'Box',      'off',...
-    'FontName', 'Arial',...
-    'TickLength', [.02 .02],...
-    'XColor',    [.3 .3 .3],...
-    'YColor',    [.3 .3 .3],...
-    'LineWidth', 1,...
-    'FontSize', 8, ...
-    'FontWeight', 'bold',...
-    'TitleFontSizeMultiplier', 1.6,...
-    'LabelFontSizeMultiplier', 1.6,...
-    'XScale', 'linear') 
-
-subplot(235)
-coefMzAmp = polyfit(binsResp.Speed.Th.Mz,  binsResp.Amp.Th.Mz, 1); %calcula polinomio de primeiro grau
-coefWhAmp = polyfit(binsResp.Speed.Th.Wh,  binsResp.Amp.Th.Wh, 1); %calcula polinomio de primeiro grau
-
-plot(binsResp.Speed.Th.Mz, polyval(coefMzAmp, binsResp.Speed.Th.Mz),'k-','linewidth',2)
-plot(binsResp.Speed.Th.Wh, polyval(coefWhAmp, binsResp.Speed.Th.Wh),'r-','linewidth',2)
-
-subplot(236)
-coefMzFre = polyfit(binsResp.Speed.Th.Mz, binsResp.Fre.Th.Mz, 1); %calcula polinomio de primeiro grau
-coefWhFre = polyfit(binsResp.Speed.Th.Wh, binsResp.Fre.Th.Wh, 1); %calcula polinomio de primeiro grau
-
-plot(binsResp.Speed.Th.Mz, polyval(coefMzFre, binsResp.Speed.Th.Mz), 'k-', 'linewidth', 2)
-plot(binsResp.Speed.Th.Wh, polyval(coefWhFre, binsResp.Speed.Th.Wh), 'r-', 'linewidth', 2)
-
-if save
-    fileName = sprintf('%sCount_Amplitude_Frequency_figure2',savePath);
-    saveas(fig,fileName, 'svg');
-    saveas(fig,fileName, 'png');
-end
-%%
-for nData=1:numReads
-    nTrials = 0;
-    for i=1:10
-        nTrials = nTrials + length(dataFull{nData, i}.Choice);
+            binsResp.Speed.Th.Mz = [binsResp.Speed.Th.Mz, mean(speed.Full.Mz(count:count+(t*srate))) ];
+            binsResp.Amp.Th.Mz = [binsResp.Amp.Th.Mz, mean(respTh.Amp.Full.Mz(count:count+(t*srate))) ];
+            binsResp.Fre.Th.Mz = [binsResp.Fre.Th.Mz, mean(respTh.Fre.Full.Mz(count:count+(t*srate))) ];
+            count=count+(t*srate);
+        end
     end
-    nTrials
+    [rpBin.Dt.R_Amp.Mz, rpBin.Dt.P_Amp.Mz] = corr( binsResp.Speed.Dt.Mz', binsResp.Amp.Dt.Mz', 'Type', 'Spearman');
+    [rpBin.Dt.R_Fre.Mz, rpBin.Dt.P_Fre.Mz] = corr( binsResp.Speed.Dt.Mz', binsResp.Fre.Dt.Mz', 'Type', 'Spearman');
+    [rpBin.Th.R_Amp.Mz, rpBin.Th.P_Amp.Mz] = corr( binsResp.Speed.Th.Mz', binsResp.Amp.Th.Mz', 'Type', 'Spearman');
+    [rpBin.Th.R_Fre.Mz, rpBin.Th.P_Fre.Mz] = corr( binsResp.Speed.Th.Mz', binsResp.Fre.Th.Mz', 'Type', 'Spearman');
+
+    count=1;
+    for i=1:(t*srate):length(speed.Full.Wh)-(t*srate)
+        try
+            binsResp.Speed.Dt.Wh = [binsResp.Speed.Dt.Wh, mean(speed.Full.Wh(count:count+(t*srate))) ];
+            binsResp.Amp.Dt.Wh = [binsResp.Amp.Dt.Wh, mean(respDt.Amp.Full.Wh(count:count+(t*srate))) ];
+            binsResp.Fre.Dt.Wh = [binsResp.Fre.Dt.Wh, mean(respDt.Fre.Full.Wh(count:count+(t*srate))) ];
+
+            binsResp.Speed.Th.Wh = [binsResp.Speed.Th.Wh, mean(speed.Full.Wh(count:count+(t*srate))) ];
+            binsResp.Amp.Th.Wh = [binsResp.Amp.Th.Wh, mean(respTh.Amp.Full.Wh(count:count+(t*srate))) ];
+            binsResp.Fre.Th.Wh = [binsResp.Fre.Th.Wh, mean(respTh.Fre.Full.Wh(count:count+(t*srate))) ];
+            count=count+(t*srate);
+        end
+    end
+    [rpBin.Dt.R_Amp.Wh, rpBin.Dt.P_Amp.Wh] = corr( binsResp.Speed.Dt.Wh', binsResp.Amp.Dt.Wh', 'Type', 'Spearman');
+    [rpBin.Dt.R_Fre.Wh, rpBin.Dt.P_Fre.Wh] = corr( binsResp.Speed.Dt.Wh', binsResp.Fre.Dt.Wh', 'Type', 'Spearman');
+    [rpBin.Th.R_Amp.Wh, rpBin.Th.P_Amp.Wh] = corr( binsResp.Speed.Th.Wh', binsResp.Amp.Th.Wh', 'Type', 'Spearman');
+    [rpBin.Th.R_Fre.Wh, rpBin.Th.P_Fre.Wh] = corr( binsResp.Speed.Th.Wh', binsResp.Fre.Th.Wh', 'Type', 'Spearman');
+    
+    
+    key = 'Pre';
+    if nData == 2
+        key = 'Pos';
+    end
+    
+    fig = figure(nData);
+    fig.Position = [1 1 1600 1000];
+    sgtitle(sprintf('Delta x Theta - %s', key))
+    
+    % Histogram
+    subplot(2, 3, 1)
+    
+    bins=[0:40:1000];
+    histogram(speed.Trial.Mz,bins,'FaceColor',[0 0 0])
+    hold on
+    histogram(speed.Trial.Wh,bins,'FaceColor',[1 0 0])
+    plot([speedthresh, speedthresh],[0 100],'k--')
+    xlim([0, 1000])
+    xlabel 'Speed (cm/s)'
+    ylabel 'Count (#)'
+    title('Trial Speed')
+    axis square
+    set(gca, ...
+        'Box',      'off',...
+        'FontName', 'Arial',...
+        'TickLength', [.02 .02],...
+        'XColor',    [.3 .3 .3],...
+        'YColor',    [.3 .3 .3],...
+        'LineWidth', 1,...
+        'FontSize', 8, ...
+        'FontWeight', 'bold',...
+        'TitleFontSizeMultiplier', 1.6,...
+        'LabelFontSizeMultiplier', 1.6,...
+        'XScale', 'linear') 
+    
+    % Scatter 
+    % Speed x Power corr Delta
+    plotFig2(2, binsResp.Speed.Dt.Mz, binsResp.Amp.Dt.Mz, binsResp.Speed.Dt.Wh, binsResp.Amp.Dt.Wh,  speedthresh, [0, 800], [0, 1200],...
+        [0], ['Mz= ', num2str(rpBin.Dt.R_Amp.Mz), '  Wh=', num2str(rpBin.Dt.R_Amp.Wh)], 'Speed (cm/s)', 'Amplitude (mV)')
+    % Speed x Fre corr
+    plotFig2(3, binsResp.Speed.Dt.Mz, binsResp.Fre.Dt.Mz, binsResp.Speed.Dt.Wh, binsResp.Fre.Dt.Wh,  speedthresh, [0, 5], [0, 1200],...
+        [3, 5], ['Mz= ' num2str(rpBin.Dt.R_Fre.Mz) '  Wh=' num2str(rpBin.Dt.R_Fre.Wh)], 'Speed (cm/s)', 'Frequency (Hz)')
+    
+    % Speed x Power corr Theta
+    plotFig2(5, binsResp.Speed.Th.Mz, binsResp.Amp.Th.Mz, binsResp.Speed.Dt.Wh, binsResp.Amp.Dt.Wh,  speedthresh, [0, 800], [0, 1200],...
+        [0], ['Mz= ' num2str(rpBin.Th.R_Amp.Mz) '  Wh=' num2str(rpBin.Th.R_Amp.Wh)], 'Speed (cm/s)', 'Amplitude (mV)')
+    % Speed x Fre corr
+    plotFig2(6, binsResp.Speed.Th.Mz, binsResp.Fre.Th.Mz, binsResp.Speed.Th.Wh, binsResp.Fre.Th.Wh,  speedthresh, [6, 10], [0, 1200],...
+        [6, 10], ['Mz= ' num2str(rpBin.Th.R_Fre.Mz) '  Wh=' num2str(rpBin.Th.R_Fre.Wh)], 'Speed (cm/s)', 'Frequency (Hz)')
+    
+    if save
+        fileName = sprintf('%sCount_Amplitude_Frequency_figure2_%s',savePath, key);
+        saveas(fig,fileName, 'svg');
+        saveas(fig,fileName, 'png');
+    end
 end
+
+clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath 
+%%
