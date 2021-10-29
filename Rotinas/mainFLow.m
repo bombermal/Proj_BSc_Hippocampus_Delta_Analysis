@@ -1139,3 +1139,309 @@ end
 
 clearvars -except dataFull data srate dt dataLineCount numReads numSubReads savePath 
 %%
+tic
+lvlZero = struct('Int', [], 'Pyr', []);
+lvlOne = struct('Lags', [], 'Mz', lvlZero, 'Wh', lvlZero);
+data = {lvlOne, lvlOne};
+
+for nData=1:numReads            % Loop Pre x Pos  
+    for file=1:numSubReads      % Loop each file 
+        % Temp hold
+        dataTemp = dataFull{nData, file};
+        
+        % Speed Mask
+        MzSpeed = dataTemp.Spike.speed_MMsec > 100;
+        WhSpeed = dataTemp.Spike.whlSpeed > 100;
+        
+        % SPIKES
+        spktimes = dataTemp.Spike.res;
+        spkid    = dataTemp.Spike.totclu;
+        IsInt    = dataTemp.Clu.isIntern;        
+        
+        uniqueId = unique(spkid);
+        
+        for n=1:length(uniqueId)    % Loop neuron by neuron
+            uniqueId(n)
+            % Filter spikes by Speed and Spike ID, split Maze and Wheel
+            spkNMz{n} = spktimes(MzSpeed & spkid == uniqueId(n))/srate;
+            spkNWh{n} = spktimes(WhSpeed & spkid == uniqueId(n))/srate;
+            
+            tempTaxa =  (length(spkNMz{n})+length(spkNMz{n}))/(sum(MzSpeed | WhSpeed)/srate);
+
+            if tempTaxa > 1
+                % Multiply the value of spkN by 1000
+                clear spkF* ACG*
+                spkFMz(round(spkNMz{n}*1000)) = 1;
+                spkFWh(round(spkNWh{n}*1000)) = 1; 
+
+                % Mz
+                [ACGMz, lags] = xcorr(spkFMz, spkFMz, 500, 'normalized'); % xcorr for each neuron           
+                ACGMz(lags == 0) = 0;
+
+                % Wh
+                [ACGWh, lags] = xcorr(spkFWh, spkFWh, 500, 'normalized'); % xcorr for each neuron
+                ACGWh(lags == 0) = 0;
+
+                if IsInt(uniqueId(n))
+                    ACGMz = smoothdata(ACGMz, 50);
+                    data{nData}.Mz.Int = [data{nData}.Mz.Int; (ACGMz-min(ACGMz))/(max(ACGMz)-min(ACGMz))];
+                    
+                    ACGWh = smoothdata(ACGWh, 100);
+                    data{nData}.Wh.Int = [data{nData}.Wh.Int; ACGWh];
+                    sprintf('Len: %i - Neuron: %i', size(data{nData}.Mz.Int, 1), uniqueId(n))
+                else
+                    ACGMz = smoothdata(ACGMz, 150);
+                    data{nData}.Mz.Pyr = [data{nData}.Mz.Pyr; (ACGMz-min(ACGMz))/(max(ACGMz)-min(ACGMz))]; 
+                    ACGWh = smoothdata(ACGWh, 200);
+                    data{nData}.Wh.Pyr = [data{nData}.Wh.Pyr; (ACGWh-min(ACGWh))/(max(ACGWh)-min(ACGWh))];   
+                end
+                clc
+            end
+        end
+        
+        data{nData}.Lags = lags;                        % Save Lags values
+      
+        sprintf('Key: %i - File: %i', nData, file)
+    end
+end
+
+fig = figure(1);
+fig.Position = [1 1 1600 1000];
+subplot(2,2,1)
+imagesc(data{1}.Mz.Int)
+ylabel('Neurons')
+xlabel('Lags')
+title('Mz Int Smooth:50 Norm:Min/Mx')
+colorbar()
+
+subplot(2,2,2)
+imagesc(data{1}.Wh.Int)
+ylabel('Neurons')
+xlabel('Lags')
+title('Wh Int Smooth:100 Norm:None')
+colorbar()
+
+subplot(2,2,3)
+imagesc(data{1}.Mz.Pyr) 
+ylabel('Neurons')
+xlabel('Lags')
+title('Mz Pyr Smooth:150 Norm:Min/Mx')
+colorbar()
+
+subplot(2,2,4)
+imagesc(data{1}.Wh.Pyr)
+ylabel('Neurons')
+xlabel('Lags')
+title('Wh Pyr Smooth:200 Norm:Min/Mx')
+colorbar()
+
+fig = figure(2);
+fig.Position = [1 1 1600 1000];
+subplot(2,2,1)
+imagesc(data{2}.Mz.Int)
+ylabel('Neurons')
+xlabel('Lags')
+title('Mz Int Smooth:50 Norm:Min/Mx')
+colorbar()
+
+subplot(2,2,2)
+imagesc(data{2}.Wh.Int)
+ylabel('Neurons')
+xlabel('Lags')
+title('Wh Int Smooth:100 Norm:None')
+colorbar()
+
+subplot(2,2,3)
+imagesc(data{2}.Mz.Pyr) 
+ylabel('Neurons')
+xlabel('Lags')
+title('Mz Pyr Smooth:150 Norm:Min/Mx')
+colorbar()
+
+subplot(2,2,4)
+imagesc(data{2}.Wh.Pyr)
+ylabel('Neurons')
+xlabel('Lags')
+title('Wh Pyr Smooth:200 Norm:Min/Mx')
+colorbar()
+toc
+%% imagesc
+file = sprintf('%s/%s.mat', 'D:/Ivan/Desktop', 'ACGData');
+% save(file, 'data');
+% load(file)
+
+%% 
+tic
+clear
+clc
+cd('D:/Ivan/OneDrive/Projetos/Códigos ( Profissional )/Material criado/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
+% addpath 'C:\Users\VAIO\Box Sync\BibliotecaMATLAB\DisciplinaMatlab\CircStat'
+basedir = {'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/dryad/Wang_et_al_eLife2016_data_part1~/';...
+    'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/dryad/Wang_et_al_eLife2016_data_part2~/'};
+
+count=0;
+for p=1:2
+    cd(basedir{p})
+    disp(p)
+    clear files
+    files = dir('*.mat');
+    %LOAD
+    for f=1:length(files)
+        count=count+1;
+        clear Spike Track Laps Clu
+        load(files(f).name)
+        srate=1250;
+        dt=1/srate;
+        
+        % idx MZ-WH
+        MzSpeed = Spike.speed_MMsec;%Track.speed_MMsec;%Speed on maze
+        WhSpeed = Spike.whlSpeed;%Laps.WhlSpeedCW+Laps.WhlSpeedCCW;%Speed on wheel
+        Mzidx   = find(MzSpeed>100);
+        Whidx   = find(WhSpeed>100);
+        %TIME
+        timevector = dt:dt:length(Track.eeg)/srate;
+%         Mzlength = sum(Track.speed_MMsec>100)/srate;
+%         Whlength = sum((Laps.WhlSpeedCW+Laps.WhlSpeedCCW)>100)/srate;
+        
+        % SPIKES
+        clear spk*
+        spktimes = Spike.res;
+        spkid    = Spike.totclu;
+        IsInt    = Clu.isIntern;
+        %%%%%%%%%%%%%%%%%%%%%%%
+%         %% neuron by neuron
+%         for n=1%:length(IsInt);
+%             spkN{n}    = spktimes(find(spkid==n))/srate;
+%             clear temp spkF ACG lags
+%             temp       = round(spkN{n}*1000);
+%             spkF(temp) = 1; 
+%             [ACG lags] = xcorr(spkF,spkF,1000);
+%             ACG(lags==0)=0;
+%             figure(1),clf
+%             bar(lags,ACG)
+%             axis tight
+%         end
+        % % only pyr
+        Mzspkpyr =[];
+        Whspkpyr =[];
+        for n=1:length(IsInt)
+            if IsInt(n) ==0
+                clear temp
+                temp = spktimes(find(spkid==n & MzSpeed>100));
+                Mzspkpyr = [Mzspkpyr; temp/srate];
+                clear temp
+                temp = spktimes(find(spkid==n & WhSpeed>100));
+                Whspkpyr = [Whspkpyr; temp/srate];
+            end
+        end
+        
+        
+        %maze
+        Mzspkmua(round(Mzspkpyr*1000))=1;
+        [MzACG lags] = xcorr(Mzspkmua,Mzspkmua,1000);
+        MzACG(lags==0)=0;
+        MuaMzACG(count,:)=MzACG/sum(MzACG);
+        %wheel
+        Whspkmua(round(Whspkpyr*1000))=1;
+        [WhACG lags] = xcorr(Whspkmua,Whspkmua,1000);
+        WhACG(lags==0)=0;
+        MuaWhACG(count,:)=WhACG/sum(WhACG);
+    end
+end
+toc
+%% Maze vs Wheel Pre and post muscimol GROUP
+figure(2),clf
+subplot(221)
+plot(lags,smooth(mean(MuaMzACG(1:11,:)),30),'k-','linewidth',2)
+hold on
+plot(lags,smooth(mean(MuaWhACG(1:11,:)),30),'r-','linewidth',2)
+plot(lags,smooth(mean(MuaMzACG(1:11,:)),30)+smooth(std(MuaMzACG(1:11,:))/sqrt(11),30),'k--')
+plot(lags,smooth(mean(MuaMzACG(1:11,:)),30)-smooth(std(MuaMzACG(1:11,:))/sqrt(11),30),'k--')
+plot(lags,smooth(mean(MuaWhACG(1:11,:)),30)+smooth(std(MuaWhACG(1:11,:))/sqrt(11),30),'r--')
+plot(lags,smooth(mean(MuaWhACG(1:11,:)),30)-smooth(std(MuaWhACG(1:11,:))/sqrt(11),30),'r--')
+xlim([0 500])
+ylim([4*10^-4 8*10^-4])
+xlabel 'Time (ms)'
+ylabel 'Spike probability'
+title 'Pre'
+box off
+set(gca,'fontsize',15)
+
+subplot(222)
+plot(lags,smooth(mean(MuaMzACG(12:22,:)),30),'k-','linewidth',2)
+hold on
+plot(lags,smooth(mean(MuaWhACG(12:22,:)),30),'r-','linewidth',2)
+plot(lags,smooth(mean(MuaMzACG(12:22,:)),30)+smooth(std(MuaMzACG(12:22,:))/sqrt(11),30),'k--')
+plot(lags,smooth(mean(MuaMzACG(12:22,:)),30)-smooth(std(MuaMzACG(12:22,:))/sqrt(11),30),'k--')
+plot(lags,smooth(mean(MuaWhACG(12:22,:)),30)+smooth(std(MuaWhACG(12:22,:))/sqrt(11),30),'r--')
+plot(lags,smooth(mean(MuaWhACG(12:22,:)),30)-smooth(std(MuaWhACG(12:22,:))/sqrt(11),30),'r--')
+xlim([0 500])
+ylim([4.5*10^-4 6*10^-4])
+xlabel 'Time (ms)'
+ylabel 'Spike probability'
+title 'Post'
+box off
+set(gca,'fontsize',15)
+set(gcf,'color','w')
+
+
+
+
+
+%% Pre and post muscimol session #1
+figure(1),clf
+subplot(221)
+bar(lags,MuaMzACG(1,:),'k')
+hold on
+plot(lags,smooth(MuaMzACG(1,:),30),'y-','linewidth',2)
+axis tight
+xlim([-500 500])
+ylim([0 1.5*10^-3])
+title 'Maze'
+ylabel 'Counts'
+xlabel 'Time (ms)'
+box off
+set(gca,'fontsize',15)
+
+
+subplot(222)
+bar(lags,MuaWhACG(1,:),'k')
+hold on
+plot(lags,smooth(MuaWhACG(1,:),30),'y-','linewidth',2)
+axis tight
+xlim([-500 500])
+ylim([0 1.5*10^-3])
+title 'Wheel'
+ylabel 'Counts'
+xlabel 'Time (ms)'
+box off
+set(gca,'fontsize',15)
+
+
+subplot(223)
+bar(lags,MuaMzACG(12,:),'k')
+hold on
+plot(lags,smooth(MuaMzACG(12,:),30),'y-','linewidth',2)
+axis tight
+xlim([-500 500])
+ylim([0 0.7*10^-3])
+title 'Maze post'
+ylabel 'Counts'
+xlabel 'Time (ms)'
+box off
+set(gca,'fontsize',15)
+
+
+subplot(224)
+bar(lags,MuaWhACG(12,:),'k')
+hold on
+plot(lags,smooth(MuaWhACG(12,:),30),'y-','linewidth',2)
+axis tight
+xlim([-500 500])
+ylim([0 0.7*10^-3])
+title 'Wheel post'
+ylabel 'Counts'
+xlabel 'Time (ms)'
+box off
+set(gca,'fontsize',15)
+set(gcf,'color','w')
