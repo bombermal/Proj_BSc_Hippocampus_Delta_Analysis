@@ -1141,133 +1141,256 @@ clearvars -except dataFull data srate dt dataLineCount numReads numSubReads save
 %%
 tic
 lvlZero = struct('Int', [], 'Pyr', []);
-lvlOne = struct('Lags', [], 'Mz', lvlZero, 'Wh', lvlZero);
-data = {lvlOne, lvlOne};
+lvlOne = struct('Acg', lvlZero, 'Pwelch', lvlZero);
+lvlTwo = struct('Mz', lvlOne , 'Wh', lvlOne, 'AcgLags', [], 'PwelchF', []);
+data = {lvlTwo, lvlTwo};
+txDisparo = 2;
+sumCut = 0.001;
 
 for nData=1:numReads            % Loop Pre x Pos  
     for file=1:numSubReads      % Loop each file 
         % Temp hold
         dataTemp = dataFull{nData, file};
-        
+
         % Speed Mask
         MzSpeed = dataTemp.Spike.speed_MMsec > 100;
         WhSpeed = dataTemp.Spike.whlSpeed > 100;
-        
+
         % SPIKES
         spktimes = dataTemp.Spike.res;
         spkid    = dataTemp.Spike.totclu;
         IsInt    = dataTemp.Clu.isIntern;        
-        
+
         uniqueId = unique(spkid);
-        
+
         for n=1:length(uniqueId)    % Loop neuron by neuron
             uniqueId(n)
             % Filter spikes by Speed and Spike ID, split Maze and Wheel
             spkNMz{n} = spktimes(MzSpeed & spkid == uniqueId(n))/srate;
             spkNWh{n} = spktimes(WhSpeed & spkid == uniqueId(n))/srate;
-            
+
             tempTaxa =  (length(spkNMz{n})+length(spkNMz{n}))/(sum(MzSpeed | WhSpeed)/srate);
 
-            if tempTaxa > 1
+            if tempTaxa > txDisparo
                 % Multiply the value of spkN by 1000
                 clear spkF* ACG*
                 spkFMz(round(spkNMz{n}*1000)) = 1;
                 spkFWh(round(spkNWh{n}*1000)) = 1; 
-
+                
                 % Mz
                 [ACGMz, lags] = xcorr(spkFMz, spkFMz, 500, 'normalized'); % xcorr for each neuron           
                 ACGMz(lags == 0) = 0;
-
+                if length(spkFMz) > 0
+                    [pMz, f] = pwelch(detrend(spkFMz), 5*srate, [], [], srate);
+                end
+                
                 % Wh
                 [ACGWh, lags] = xcorr(spkFWh, spkFWh, 500, 'normalized'); % xcorr for each neuron
                 ACGWh(lags == 0) = 0;
-
+                if sum(spkFWh) > 0
+                    [pWh, f] = pwelch(detrend(spkFWh), 5*srate, [], [], srate);
+                end
+                
                 if IsInt(uniqueId(n))
-                    ACGMz = smoothdata(ACGMz, 50);
-                    data{nData}.Mz.Int = [data{nData}.Mz.Int; (ACGMz-min(ACGMz))/(max(ACGMz)-min(ACGMz))];
-                    
-                    ACGWh = smoothdata(ACGWh, 100);
-                    data{nData}.Wh.Int = [data{nData}.Wh.Int; ACGWh];
-                    sprintf('Len: %i - Neuron: %i', size(data{nData}.Mz.Int, 1), uniqueId(n))
+                    if sum(ACGMz) > sumCut
+                        ACGMz = smoothdata(ACGMz, 100);
+                        data{nData}.Mz.Acg.Int = [data{nData}.Mz.Acg.Int; ACGMz];
+                        if length(spkFMz) > 0
+                            data{nData}.Mz.Pwelch.Int = [data{nData}.Mz.Pwelch.Int; pMz'];
+                        end
+                    end
+                    if sum(ACGWh) > sumCut
+                        ACGWh = smoothdata(ACGWh, 100);
+                        data{nData}.Wh.Acg.Int = [data{nData}.Wh.Acg.Int; ACGWh ]; 
+                        if length(spkFWh) > 0
+                            data{nData}.Wh.Pwelch.Int = [data{nData}.Wh.Pwelch.Int; pWh'];
+                        end
+                    end
                 else
-                    ACGMz = smoothdata(ACGMz, 150);
-                    data{nData}.Mz.Pyr = [data{nData}.Mz.Pyr; (ACGMz-min(ACGMz))/(max(ACGMz)-min(ACGMz))]; 
-                    ACGWh = smoothdata(ACGWh, 200);
-                    data{nData}.Wh.Pyr = [data{nData}.Wh.Pyr; (ACGWh-min(ACGWh))/(max(ACGWh)-min(ACGWh))];   
+                    if sum(ACGMz) > sumCut
+                        ACGMz = smoothdata(ACGMz, 100);
+                        data{nData}.Mz.Acg.Pyr = [data{nData}.Mz.Acg.Pyr; ACGMz];
+                        if length(spkFMz) > 0
+                            data{nData}.Mz.Pwelch.Pyr = [data{nData}.Mz.Pwelch.Pyr; pMz'];
+                        end
+                    end
+                    if sum(ACGWh) > sumCut
+                        ACGWh = smoothdata(ACGWh, 100);
+                        data{nData}.Wh.Acg.Pyr = [data{nData}.Wh.Acg.Pyr; ACGWh];
+                        if length(spkFWh) > 0
+                            data{nData}.Wh.Pwelch.Pyr = [data{nData}.Wh.Pwelch.Pyr; pWh']; 
+                        end 
+                    end
                 end
                 clc
             end
         end
+
+        data{nData}.AcgLags = lags;
+        data{nData}.PwelchF = f;
         
-        data{nData}.Lags = lags;                        % Save Lags values
-      
         sprintf('Key: %i - File: %i', nData, file)
     end
 end
+maskF = f > 2 & f < 12;
+figure(1)
+imagesc(data{1}.Wh.Pwelch.Pyr(:, maskF))
+figure(2)
+plot(data{1}.Wh.Pwelch.Pyr(4, maskF))
 
+dataUnorm = data;
+%% Normalization
+for nData=1:2
+    % Pre Pos
+    tempData = data{nData};
+    
+    % Acg
+    for i=1:size(tempData.Mz.Acg.Int, 1)
+        tempRow = tempData.Mz.Acg.Int(i, :);
+        data{nData}.Mz.Acg.Int(i, :) = (tempRow-min(tempRow))/(max(tempRow)-min(tempRow));
+    end
+    for i=1:size(tempData.Mz.Acg.Pyr, 1)
+        tempRow = tempData.Mz.Acg.Pyr(i, :);
+        data{nData}.Mz.Acg.Pyr(i, :) = (tempRow-min(tempRow))/(max(tempRow)-min(tempRow));
+    end 
+    for i=1:size(tempData.Wh.Acg.Int, 1)
+        tempRow = tempData.Wh.Acg.Int(i, :);
+        data{nData}.Wh.Acg.Int(i, :) = (tempRow-min(tempRow))/(max(tempRow)-min(tempRow));
+    end
+    for i=1:size(tempData.Wh.Acg.Pyr, 1)
+        tempRow = tempData.Wh.Acg.Pyr(i, :);
+        data{nData}.Wh.Acg.Pyr(i, :) = (tempRow-min(tempRow))/(max(tempRow)-min(tempRow));
+    end
+
+    % Pwelch
+    for i=1:size(tempData.Mz.Pwelch.Int, 1)
+        tempRow = tempData.Mz.Pwelch.Int(i, :);
+        data{nData}.Mz.Pwelch.Int(i, :) = tempRow/sum(tempRow);
+    end
+    for i=1:size(tempData.Mz.Pwelch.Pyr, 1)
+        tempRow = tempData.Mz.Pwelch.Pyr(i, :);
+        data{nData}.Mz.Pwelch.Pyr(i, :) = tempRow/sum(tempRow);
+    end 
+    for i=1:size(tempData.Wh.Pwelch.Int, 1)
+        tempRow = tempData.Wh.Pwelch.Int(i, :);
+        data{nData}.Wh.Pwelch.Int(i, :) = tempRow/sum(tempRow);
+    end
+    for i=1:size(tempData.Wh.Pwelch.Pyr, 1)
+        tempRow = tempData.Wh.Pwelch.Pyr(i, :);
+        data{nData}.Wh.Pwelch.Pyr(i, :) = tempRow/sum(tempRow);
+    end 
+end
+%% Save/Load Data
+savePath = 'D:/Ivan/Desktop';
+file = sprintf('%s/%s.mat', savePath, 'AcgPwelchData');
+% save(file, 'dataUnorm', 'data');
+% load(file)
+%% Plot Imagesc
+save = 1;
+clf
 % Pre
 fig = figure(1);
 fig.Position = [1 1 1600 1000];
 subplot(2,2,1)
-imagesc(data{1}.Mz.Int)
+imagesc(data{1}.Mz.Acg.Int)
 ylabel('Neurons')
 xlabel('Lags')
 title('Mz Int Smooth:50 Norm:Min/Mx')
 colorbar()
 
 subplot(2,2,2)
-imagesc(data{1}.Wh.Int)
+imagesc(data{1}.Wh.Acg.Int)
 ylabel('Neurons')
 xlabel('Lags')
 title('Wh Int Smooth:100 Norm:None')
 colorbar()
 
 subplot(2,2,3)
-imagesc(data{1}.Mz.Pyr) 
+imagesc(data{1}.Mz.Acg.Pyr) 
 ylabel('Neurons')
 xlabel('Lags')
 title('Mz Pyr Smooth:150 Norm:Min/Mx')
 colorbar()
 
 subplot(2,2,4)
-imagesc(data{1}.Wh.Pyr)
+imagesc(data{1}.Wh.Acg.Pyr)
 ylabel('Neurons')
 xlabel('Lags')
 title('Wh Pyr Smooth:200 Norm:Min/Mx')
 colorbar()
 
 % Pos
-fig = figure(2);
-fig.Position = [1 1 1600 1000];
+figb = figure(2);
+figb.Position = [1 1 1600 1000];
 subplot(2,2,1)
-imagesc(data{2}.Mz.Int)
+imagesc(data{2}.Mz.Acg.Int)
 ylabel('Neurons')
 xlabel('Lags')
 title('Mz Int Smooth:50 Norm:Min/Mx')
 colorbar()
 
 subplot(2,2,2)
-imagesc(data{2}.Wh.Int)
+imagesc(data{2}.Wh.Acg.Int)
 ylabel('Neurons')
 xlabel('Lags')
 title('Wh Int Smooth:100 Norm:None')
 colorbar()
 
 subplot(2,2,3)
-imagesc(data{2}.Mz.Pyr) 
+imagesc(data{2}.Mz.Acg.Pyr) 
 ylabel('Neurons')
 xlabel('Lags')
 title('Mz Pyr Smooth:150 Norm:Min/Mx')
 colorbar()
 
 subplot(2,2,4)
-imagesc(data{2}.Wh.Pyr)
+imagesc(data{2}.Wh.Acg.Pyr)
 ylabel('Neurons')
 xlabel('Lags')
 title('Wh Pyr Smooth:200 Norm:Min/Mx')
 colorbar()
+
+if save
+    fileName = sprintf('D:/Ivan/Desktop/Combined_Trial_Imagesc_ACG_LFP_%i_pre', txDisparo);
+    saveas(fig, fileName, 'svg');
+    saveas(fig, fileName, 'png');
+    
+    fileName = sprintf('D:/Ivan/Desktop/Combined_Trial_Imagesc_ACG_LFP_%i_pos', txDisparo);
+    saveas(figb, fileName, 'svg');
+    saveas(figb, fileName, 'png');
+end
+
 toc
-%% imagesc
-file = sprintf('%s/%s.mat', 'D:/Ivan/Desktop', 'ACGData');
-% save(file, 'data');
-% load(file)
+%% Plot Pwelch
+save = 0;
+
+for nData=1:2
+    key = 'Pre';
+    if nData == 2
+        key = 'Pos';
+    end
+    fig = figure(nData);
+    subplot(2,1,1)
+    plot(data{nData}.PwelchF, mean(data{nData}.Mz.Pwelch.Pyr), 'k')
+    hold on
+    plot(data{nData}.PwelchF, mean(data{nData}.Wh.Pwelch.Pyr), 'r')
+    xlim([1,20])
+    title(sprintf('Pyr %s', key))
+
+    subplot(2,1,2)
+    plot(data{nData}.PwelchF, mean(data{nData}.Mz.Pwelch.Int), 'k')
+    hold on
+    plot(data{nData}.PwelchF, mean(data{nData}.Wh.Pwelch.Int), 'r')
+    xlim([1,20])
+    title(sprintf('Int %s', key))
+    label1{1} = 'Maze';
+    label1{2} = 'Wheel';
+    box off
+    legend(label1,'location','bestoutside','orientation','horizontal')
+    if save
+        fileName = sprintf('D:/Ivan/Desktop/Neuron_Pwelch_%s', key);
+        saveas(fig, fileName, 'svg');
+        saveas(fig, fileName, 'png');
+
+    end
+end
