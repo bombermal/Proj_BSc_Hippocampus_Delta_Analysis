@@ -1144,7 +1144,7 @@ lvlZero = struct('Int', [], 'Pyr', []);
 lvlOne = struct('Acg', lvlZero, 'Pwelch', lvlZero);
 lvlTwo = struct('Mz', lvlOne , 'Wh', lvlOne, 'AcgLags', [], 'PwelchF', []);
 data = {lvlTwo, lvlTwo};
-txDisparo = 2;
+txDisparo = 1;
 sumCut = 0.001;
 
 for nData=1:numReads            % Loop Pre x Pos  
@@ -1240,6 +1240,7 @@ plot(data{1}.Wh.Pwelch.Pyr(4, maskF))
 
 dataUnorm = data;
 %% Normalization
+
 for nData=1:2
     % Pre Pos
     tempData = data{nData};
@@ -1286,7 +1287,7 @@ file = sprintf('%s/%s.mat', savePath, 'AcgPwelchData');
 % save(file, 'dataUnorm', 'data');
 % load(file)
 %% Plot Imagesc
-save = 1;
+save = 0;
 clf
 % Pre
 fig = figure(1);
@@ -1393,4 +1394,293 @@ for nData=1:2
         saveas(fig, fileName, 'png');
 
     end
+end
+%% Fig 4 Imagesc Half
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/PSD_ACG_SPIKE/';
+save = 0; 
+
+PREPOS=1;
+value=0.2;
+sm=20;
+Dt=find(dataUnorm{PREPOS}.PwelchF>4 & dataUnorm{PREPOS}.PwelchF<6);
+Th=find(dataUnorm{PREPOS}.PwelchF>8 & dataUnorm{PREPOS}.PwelchF<15);
+
+% Pre Mz Int
+% Fig
+fig=figure(1);clf
+fig.Position = [1 1 1000 1600];
+sgtitle( 'Pre' )
+subplot(3,2,1)
+% Plot
+plotAcgSpk(data{PREPOS}.Mz.Acg.Int, value, dataUnorm, sm, PREPOS, 'Maze Interneuron')
+
+
+% Pre Mz Pyr
+% Fig
+subplot(3,2,2)
+% Plot
+plotAcgSpk(data{PREPOS}.Mz.Acg.Pyr, value, dataUnorm, sm, PREPOS, 'Maze Pyramidal')
+
+% Pre Wh Int
+% Fig
+subplot(3,2,3)
+% Plot
+plotAcgSpk(data{PREPOS}.Wh.Acg.Int, value, dataUnorm, sm, PREPOS, 'Wheel Interneuron')
+
+% Pre Wh Pyr
+% Fig
+subplot(3,2,4)
+% Plot
+plotAcgSpk(data{PREPOS}.Wh.Acg.Pyr, value, dataUnorm, sm, PREPOS, 'Wheel Pyramidal')
+
+
+% Pos Wh Int
+% Fig
+PREPOS = 2;
+subplot(3,2,5)
+% Plot
+plotAcgSpk(data{PREPOS}.Wh.Acg.Int, value, dataUnorm, sm, PREPOS, 'Wheel Interneuron POST')
+
+% Pos Wh Pyr
+% Fig
+subplot(3,2,6)
+% Plot
+plotAcgSpk(data{PREPOS}.Wh.Acg.Pyr, value, dataUnorm, sm, PREPOS, 'Wheel Pyramidal POST')
+set(gcf,'color','w')
+
+
+if save
+    fileName = sprintf('%s%s',savePath, 'Imagesc_ACG');
+    saveas(fig, fileName, 'svg');
+    saveas(fig, fileName, 'png');
+end
+
+%% Fig 4 PSD Half
+
+PREPOS=1;
+value=0.2;
+sm=20;
+Dt=find(dataUnorm{PREPOS}.PwelchF>4 & dataUnorm{PREPOS}.PwelchF<6);
+Th=find(dataUnorm{PREPOS}.PwelchF>8 & dataUnorm{PREPOS}.PwelchF<15);
+
+% Pre Mz Int
+% Fig
+fig=figure(2);clf
+fig.Position = [1 1 1600 1000];
+sgtitle( 'Pre' )
+subplot(3,4,[1,2])
+plotPsdSpk(data, value, dataUnorm, PREPOS,  'Interneurons', 0)
+subplot(3,4,[3,4])
+plotPsdSpk(data, value, dataUnorm, PREPOS,  'Pyramidal', 1)
+
+% Pre
+% Statistic Interneuron Delta
+subplot(3,4,5)
+limMz=find(mean(data{PREPOS}.Mz.Acg.Int,2)>value);
+limWh=find(mean(data{PREPOS}.Wh.Acg.Int,2)>value);
+
+x = [ones(size(mean(data{PREPOS}.Mz.Pwelch.Int(limMz,Dt),2)));2*ones(size(mean(data{PREPOS}.Wh.Pwelch.Int(limWh,Dt),2)))];
+yMz = max(data{PREPOS}.Mz.Pwelch.Int(limMz,Dt),[],2)-data{PREPOS}.Mz.Pwelch.Int(limMz,Dt(end));
+yWh = max(data{PREPOS}.Wh.Pwelch.Int(limWh,Dt),[],2)-data{PREPOS}.Wh.Pwelch.Int(limWh,Dt(end));
+y = [yMz;yWh];
+boxplot(y,x)
+xlabel 'Mz x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_dtint, h_dtint] = ranksum(yMz,yWh);
+else
+    [h_dtint, p_dtint] = ttest2(yMz,yWh);
+end
+if h_dtint == 1
+    hold on
+    plot(1.5,median(yWh),'*')
+end
+title (sprintf('Int. 4-Hz: %.5f\nPre', p_dtint))
+
+% Statistic Interneuron Theta
+subplot(3,4,6)
+x=[ones(size(mean(data{PREPOS}.Mz.Pwelch.Int(limMz,Th),2)));2*ones(size(mean(data{PREPOS}.Wh.Pwelch.Int(limWh,Th),2)))];
+yMz=max(data{PREPOS}.Mz.Pwelch.Int(limMz,Th),[],2)-data{PREPOS}.Mz.Pwelch.Int(limMz,Th(end));
+yWh=max(data{PREPOS}.Wh.Pwelch.Int(limWh,Th),[],2)-data{PREPOS}.Wh.Pwelch.Int(limWh,Th(end));
+y=[yMz;yWh];
+boxplot(y,x)
+hold on
+xlabel 'Mz x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_thint, h_thint] = ranksum(yMz,yWh);
+else
+    [h_thint, p_thint] = ttest2(yMz,yWh);
+end
+if h_thint == 1
+    hold on
+    plot(1.4,median(yWh),'*')
+end
+title (sprintf('Int. Theta: %.5f\nPre', p_thint))
+
+% Statistic Pyramidal Delta
+subplot(3,4,7)
+limMz=find(mean(data{PREPOS}.Mz.Acg.Pyr,2)>value);
+limWh=find(mean(data{PREPOS}.Wh.Acg.Pyr,2)>value);
+
+x = [ones(size(mean(data{PREPOS}.Mz.Pwelch.Pyr(limMz,Dt),2)));2*ones(size(mean(data{PREPOS}.Wh.Pwelch.Pyr(limWh,Dt),2)))];
+yMz = max(data{PREPOS}.Mz.Pwelch.Pyr(limMz,Dt),[],2)-data{PREPOS}.Mz.Pwelch.Pyr(limMz,Dt(end));
+yWh = max(data{PREPOS}.Wh.Pwelch.Pyr(limWh,Dt),[],2)-data{PREPOS}.Wh.Pwelch.Pyr(limWh,Dt(end));
+y = [yMz;yWh];
+boxplot(y,x)
+xlabel 'Mz x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_dtpyr, h_dtpyr] = ranksum(yMz,yWh);
+else
+    [h_dtpyr, p_dtpyr] = ttest2(yMz,yWh);
+end
+if h_dtpyr == 1
+    hold on
+    plot(1.5,median(yWh),'*')
+end
+title (sprintf('Pyr. 4-Hz: %.5f\nPre', p_dtpyr))
+
+% Statistic Pyramidal Theta
+subplot(3,4,8)
+x=[ones(size(mean(data{PREPOS}.Mz.Pwelch.Pyr(limMz,Th),2)));2*ones(size(mean(data{PREPOS}.Wh.Pwelch.Pyr(limWh,Th),2)))];
+yMz=max(data{PREPOS}.Mz.Pwelch.Pyr(limMz,Th),[],2)-data{PREPOS}.Mz.Pwelch.Pyr(limMz,Th(end));
+yWh=max(data{PREPOS}.Wh.Pwelch.Pyr(limWh,Th),[],2)-data{PREPOS}.Wh.Pwelch.Pyr(limWh,Th(end));
+y=[yMz;yWh];
+boxplot(y,x)
+hold on
+xlabel 'Mz x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_thint, h_thint] = ranksum(yMz,yWh);
+else
+    [h_thint, p_thint] = ttest2(yMz,yWh);
+end
+if h_thint == 1
+    hold on
+    plot(1.4,median(yWh),'*')
+end
+title (sprintf('Pyr. Theta: %.5f\nPre', p_thint))
+
+% Pos Wh Int
+% Fig
+PREPOS = 2;
+% Statistic Interneuron Delta
+subplot(3,4,9)
+limMz=find(mean(data{1}.Wh.Acg.Int,2)>value);
+limWh=find(mean(data{2}.Wh.Acg.Int,2)>value);
+
+x = [ones(size(mean(data{1}.Wh.Pwelch.Int(limMz,Dt),2)));2*ones(size(mean(data{2}.Wh.Pwelch.Int(limWh,Dt),2)))];
+yMz = max(data{1}.Wh.Pwelch.Int(limMz,Dt),[],2)-data{1}.Wh.Pwelch.Int(limMz,Dt(end));
+yWh = max(data{2}.Wh.Pwelch.Int(limWh,Dt),[],2)-data{2}.Wh.Pwelch.Int(limWh,Dt(end));
+y = [yMz;yWh];
+boxplot(y,x)
+xlabel 'Wh x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_dtint, h_dtint] = ranksum(yMz,yWh);
+else
+    [h_dtint, p_dtint] = ttest2(yMz,yWh);
+end
+if h_dtint == 1
+    hold on
+    plot(1.5,median(yWh),'*')
+end
+title (sprintf('Int. 4-Hz: %.5f\nPre - Pos', p_dtint))
+
+% Statistic Interneuron Theta
+subplot(3,4,10)
+x = [ones(size(mean(data{1}.Wh.Pwelch.Int(limMz,Th),2)));2*ones(size(mean(data{2}.Wh.Pwelch.Int(limWh,Th),2)))];
+yMz = max(data{1}.Wh.Pwelch.Int(limMz,Th),[],2)-data{1}.Wh.Pwelch.Int(limMz,Th(end));
+yWh = max(data{2}.Wh.Pwelch.Int(limWh,Th),[],2)-data{2}.Wh.Pwelch.Int(limWh,Th(end));
+y=[yMz;yWh];
+boxplot(y,x)
+hold on
+xlabel 'Wh x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_thint, h_thint] = ranksum(yMz,yWh);
+else
+    [h_thint, p_thint] = ttest2(yMz,yWh);
+end
+if h_thint == 1
+    hold on
+    plot(1.4,median(yWh),'*')
+end
+title (sprintf('Int. Theta: %.5f\nPre - Pos', p_thint))
+
+% Statistic Pyramidal Delta
+subplot(3,4,11)
+limMz=find(mean(data{1}.Wh.Acg.Pyr,2)>value);
+limWh=find(mean(data{2}.Wh.Acg.Pyr,2)>value);
+
+x = [ones(size(mean(data{1}.Wh.Pwelch.Pyr(limMz,Dt),2)));2*ones(size(mean(data{2}.Wh.Pwelch.Pyr(limWh,Dt),2)))];
+yMz = max(data{1}.Wh.Pwelch.Pyr(limMz,Dt),[],2)-data{1}.Wh.Pwelch.Pyr(limMz,Dt(end));
+yWh = max(data{2}.Wh.Pwelch.Pyr(limWh,Dt),[],2)-data{2}.Wh.Pwelch.Pyr(limWh,Dt(end));
+y = [yMz;yWh];
+boxplot(y,x)
+xlabel 'Wh x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_dtpyr, h_dtpyr] = ranksum(yMz,yWh);
+else
+    [h_dtpyr, p_dtpyr] = ttest2(yMz,yWh);
+end
+if h_dtpyr == 1
+    hold on
+    plot(1.5,median(yWh),'*')
+end
+title (sprintf('Pyr. 4-Hz: %.5f\nPre - Pos', p_dtpyr))
+
+% Statistic Pyramidal Theta
+subplot(3,4,12)
+x = [ones(size(mean(data{1}.Wh.Pwelch.Pyr(limMz,Th),2)));2*ones(size(mean(data{2}.Wh.Pwelch.Pyr(limWh,Th),2)))];
+yMz = max(data{1}.Wh.Pwelch.Pyr(limMz,Th),[],2)-data{1}.Wh.Pwelch.Pyr(limMz,Th(end));
+yWh = max(data{2}.Wh.Pwelch.Pyr(limWh,Th),[],2)-data{2}.Wh.Pwelch.Pyr(limWh,Th(end));
+y=[yMz;yWh];
+boxplot(y,x)
+hold on
+xlabel 'Wh x Wh'
+box off
+ylabel 'Power index (au)'
+axis square
+p_norm = swtest(y);
+if p_norm == 1
+    [p_thpyr, h_thpyr] = ranksum(yMz,yWh);
+else
+    [h_thpyr, p_thpyr] = ttest2(yMz,yWh);
+end
+if h_thpyr == 1
+    hold on
+    plot(1.4,median(yWh),'*')
+end
+title (sprintf('Pyr. Theta: %.5f\nPre - Pos', p_thpyr))
+
+set(gcf,'color','w')
+
+if save
+    fileName = sprintf('%s%s',savePath, 'PSD_Bar');
+    saveas(fig, fileName, 'svg');
+    saveas(fig, fileName, 'png');
 end
