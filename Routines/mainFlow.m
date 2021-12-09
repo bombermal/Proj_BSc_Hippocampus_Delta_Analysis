@@ -4,7 +4,7 @@ clc
 close all
 format compact
 cd('D:/Ivan/OneDrive/Projetos/Códigos ( Profissional )/Material criado/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
-addpath('Rotinas/Functions/');
+addpath('Routines/Functions/');
 srate=1250;
 dt=1/srate;
 %% 1 - Pre process
@@ -34,7 +34,9 @@ mSpeed = 100;
 
 savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/Single Files/';
 
-processFiles = 0;
+% Change to 1 if yout want to process all files and create the data ( 1st
+% time )
+processFiles = 1;
 % Load files
 if processFiles
     for i=1:size(filePaths,1)
@@ -72,7 +74,7 @@ if processFiles
             dataSingle.Track.origEeg = dataSingle.Track.eeg;
             % Filter noise
             dataSingle = filterLFP(dataSingle, srate);
-
+            
             % Process
             dataSingle = fillStruct(srate, WindowLength, Overlap, NFFT, dataSingle, wSpeed, mSpeed);
 
@@ -95,12 +97,11 @@ if processFiles
             save(file, 'Clu', 'Spike', 'Name', 'Pwelch', 'Lfp', 'Delta', 'Theta', ...
                'Choice', 'Speed', '-v7.3')  
 
-
             sprintf('Dir: %d, File: %d', i, j)
         end
     end
 end
-% clearvars -except srate dt Band Clu Name Spike
+clearvars -except srate dt Band Clu Name Spike
 %% Load processed file
 % 2.0 - Load file
 tic
@@ -109,7 +110,7 @@ clc
 close all
 format compact
 cd('D:/Ivan/OneDrive/Projetos/Códigos ( Profissional )/Material criado/ICE/Proj_BSc_Hippocampus_Delta_Analysis');
-addpath('Rotinas/Functions/');
+addpath('Routines/Functions/');
 srate=1250;
 dt=1/srate;
 
@@ -139,6 +140,8 @@ clearvars -except dataFull srate dt numReads numSubReads
 toc
 %% 3 - Analyse - Calc 
 % 3.1 - Error proportion
+
+% Variables
 prop = {};
 prop{1}.Hit = [];
 prop{1}.Err = [];
@@ -148,6 +151,7 @@ save = 0;
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/';
 [numReads, numSubReads ] = size(dataFull);
 
+% If save = 1
 if save
     fileID = fopen(strcat(savePath,'Individual_hits_proportion.txt'), 'w');
 else
@@ -493,7 +497,7 @@ for chc=0:1
     end
 end
 
-% clearvars -except dataFull data srate dt numReads numSubReads savePath
+clearvars -except dataFull data srate dt numReads numSubReads savePath
 %% 3.1.7 - Group PSD + std - All 4 - Mz n Wh - Correct x Miss - Fig X
 clc
 save = 0;
@@ -717,7 +721,7 @@ for bnd=1:length(bands)
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.9 - Histogram Corr x Miss - POWER - Fig X
+%% 3.1.10 - Histogram Corr x Miss - POWER - Fig X
 
 clf
 save = 0;
@@ -821,8 +825,8 @@ for bnd=2%:length(bands)
         saveas(fig,fileName, 'png');
     end
 end
-% clearvars -except dataFull data srate dt numReads numSubReads savePath
-%% 3.1.10 - Histogram Corr x Miss - PEAK Freq - Fig X
+clearvars -except dataFull data srate dt numReads numSubReads savePath
+%% 3.1.11 - Histogram Corr x Miss - PEAK Freq - Fig X
 clf
 save = 0;
 bands = [3,5; 6,10];
@@ -935,8 +939,7 @@ for bnd=1:length(bands)
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-
-%% 3.1.11 - BoxPlot Corr x Miss - PEAK Freq - Fig X
+%% 3.1.12 - BoxPlot Corr x Miss - PEAK Freq - Fig X
 clf
 save = 0;
 bands = [3,5; 6,10];
@@ -1026,8 +1029,7 @@ for bnd=1:length(bands)
     end
 end
 clearvars -except dataFull data srate dt numReads numSubReads savePath
-
-%% 3.1.11 - BoxPlot Corr x Miss - Power - Fig X
+%% 3.1.13 - BoxPlot Corr x Miss - Power - Fig X
 clf
 save = 0;
 bands = [3,5; 6,10];
@@ -1111,18 +1113,16 @@ for bnd=1:length(bands)
         saveas(fig,fileName, 'png');
     end
 end
-% clearvars -except dataFull data srate dt numReads numSubReads savePath
+clearvars -except dataFull data srate dt numReads numSubReads savePath
+%% 3.1.14 - Stats peak freq Theta - Mz x Wh - Pre
 
-
-%% Stats peak freq Theta - Mz x Wh - Pre
-clf
 save = 0;
 bands = [3,5; 6,10];
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Bar/';
-for bnd=2%:length(bands)
+for bnd=1:length(bands)
     data = {struct('Mz', [], 'Wh', [],'Freq', []), struct('Mz', [], 'Wh', [], 'Freq', [])}; 
    
-    for nData=1%:numReads
+    for nData=1:numReads
         nTrials = 0;
         for i=1:numSubReads
             dataTemp = dataFull{nData, i}.Pwelch;
@@ -1136,7 +1136,6 @@ for bnd=2%:length(bands)
 
             data{nData}.Mz = [data{nData}.Mz; dataTemp.Psd.Mz(:, fMask)];
             data{nData}.Wh = [data{nData}.Wh; dataTemp.Psd.Wh(:, fMask)];
-
 
         end
 
@@ -1160,14 +1159,13 @@ for bnd=2%:length(bands)
         else
             [ hWh, pWh ] = ttest(peakMz, peakWh);
         end
-        
 
     end
 
     sprintf( 'P-value: %.2e - H: %i', pWh, hWh)
 end
 
-%% 3.1.11 - Combined ACG - Imagesc - Fig 1 n 3
+%% 3.1.15 - Combined ACG - Imagesc - Fig 1 n 3
 
 grIdx = [1, 2; 3, 4];
 save = 0;
@@ -1234,7 +1232,7 @@ oneStep = struct("Mz", [], "Wh", []);
 secStep = struct('Trial', oneStep, 'Full', oneStep);
 
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Max Power and Frequency/';
-save = 1; 
+save = 0; 
 
 for nData=1:numReads
     respDt = struct('Amp', secStep, 'Fre', secStep);
@@ -1471,11 +1469,6 @@ for nData=1:numReads            % Loop Pre x Pos
         sprintf('Key: %i - File: %i', nData, file)
     end
 end
-maskF = f > 2 & f < 12;
-figure(1)
-imagesc(data{1}.Wh.Pwelch.Pyr(:, maskF))
-figure(2)
-plot(data{1}.Wh.Pwelch.Pyr(4, maskF))
 
 dataUnorm = data;
 %% Normalization
@@ -1521,10 +1514,12 @@ for nData=1:2
     end 
 end
 %% Save/Load Data
+tic
 savePath = 'D:/Ivan/Desktop';
 file = sprintf('%s/%s.mat', savePath, 'AcgPwelchData');
 % save(file, 'dataUnorm', 'data');
 % load(file)
+toc
 %% Plot Imagesc
 save = 0;
 clf
@@ -1942,6 +1937,8 @@ for nData=1:2
 end
 %% correct trials num
 
+trialsToStack = [];
+normTrialsToStack = zeros(2);
 for nData=1:2
     sumTrials = struct('Corr', 0, 'Miss', 0);
     for n=1:10
@@ -1954,4 +1951,43 @@ for nData=1:2
     end
     sprintf('Session: %i', nData)
     sumTrials
+    trialsToStack(nData, 1) = sumTrials.Corr;    
+    trialsToStack(nData, 2) = sumTrials.Miss;
+    normTrialsToStack(nData, :) = (trialsToStack(nData, :)/sum(trialsToStack(nData, :)))*100;
+end
+%%
+save = 1;
+savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Bar/';
+
+fig=figure(1);clf
+fig.Position = [1 1 1600 1000];
+sgtitle( 'Trial Correct x Miss - Pre x Pos' )
+subplot(1,2,1)
+cat = categorical({'1.Pre','2.Pos'});
+bar(cat, normTrialsToStack, 'stacked')
+label1{1} = 'Correct';
+label1{2} = 'Miss';
+box off
+legend(label1,'location','bestoutside','orientation','horizontal')
+legend('boxoff')
+ylabel 'Percent(%)'
+box off
+axis square
+
+subplot(1,2,2)
+cat = categorical({'1.Pre','2.Pos'});
+bar(cat, trialsToStack, 'stacked')
+label1{1} = 'Correct';
+label1{2} = 'Miss';
+box off
+legend(label1,'location','bestoutside','orientation','horizontal')
+legend('boxoff')
+ylabel 'Count(#)'
+box off
+axis square
+
+if save
+    fileName = sprintf('%s%s',savePath, 'Miss_x_Correct_proportion');
+    saveas(fig, fileName, 'svg');
+    saveas(fig, fileName, 'png');
 end
