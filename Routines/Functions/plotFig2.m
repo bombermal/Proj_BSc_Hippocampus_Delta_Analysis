@@ -1,5 +1,5 @@
 function plotFig2(fIdx, x1, y1, x2, y2, speedthresh, speedLim, xLim, yLim, ttl, xlbl, ylbl)
-    subplot(2, 3, fIdx)
+%     subplot(2, 3, fIdx)
     
     plot(x1, y1, 'ok', 'markerfacecolor', 'k', 'markersize', 2)
     hold on
@@ -28,10 +28,11 @@ function plotFig2(fIdx, x1, y1, x2, y2, speedthresh, speedLim, xLim, yLim, ttl, 
         'XScale', 'linear')
     
     
-    subplot(2, 3, fIdx)
+%     subplot(2, 3, fIdx)
     coefMzAmp = polyfit(x1,  y1, 1); %calcula polinomio de primeiro grau
     coefWhAmp = polyfit(x2,  y2, 1); %calcula polinomio de primeiro grau
 
     plot(x1, polyval(coefMzAmp, x1),'k-','linewidth',2)
     plot(x2, polyval(coefWhAmp, x2),'r-','linewidth',2)
+    hold off
 end

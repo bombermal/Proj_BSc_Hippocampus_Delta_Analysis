@@ -1211,9 +1211,9 @@ for nData=1:numReads
     hold on
     val = size(auxMzAcgCombine, 1)/2;
     xLimValue = -val:val-1;
-    
     yyaxis right
     plot(xLimValue, mean(auxMzAcgCombine, 2), 'w')
+    
     yyaxis left
     plotImagesc(grIdx(nData, 2), lagsWh, auxWhAcgCombine', 'Wh', ttlKey)
     yyaxis right
@@ -1225,7 +1225,7 @@ if save
     saveas(fig,fileName, 'png');
 end 
 
-clearvars -except dataFull data srate dt numReads numSubReads savePath
+% clearvars -except dataFull data srate dt numReads numSubReads savePath
 %% 3.2.1 Figure 2 - Calc
 speedthresh=100;
 oneStep = struct("Mz", [], "Wh", []);
@@ -1939,13 +1939,16 @@ end
 
 trialsToStack = [];
 normTrialsToStack = zeros(2);
+toStatsTest = {{[], []}, {[], []}};
 for nData=1:2
     sumTrials = struct('Corr', 0, 'Miss', 0);
     for n=1:10
         aux = dataFull{nData, n}.Choice;
         mss = sum(aux == 0);
         crr = sum(aux == 1);
-        
+    
+        toStatsTest{1}{nData} = [toStatsTest{1}{nData}, crr];
+        toStatsTest{2}{nData} = [toStatsTest{2}{nData}, mss];
         sumTrials.Corr = sumTrials.Corr + crr;
         sumTrials.Miss = sumTrials.Miss + mss;
     end
@@ -1955,8 +1958,38 @@ for nData=1:2
     trialsToStack(nData, 2) = sumTrials.Miss;
     normTrialsToStack(nData, :) = (trialsToStack(nData, :)/sum(trialsToStack(nData, :)))*100;
 end
+
+p=swtest([toStatsTest{1}{1},toStatsTest{1}{2}]);
+if p==1
+    [pVal, h]=ranksum(toStatsTest{1}{1},toStatsTest{1}{2});
+else
+    [h, pVal]=ttest(toStatsTest{1}{1},toStatsTest{1}{2});
+end
+sprintf('Correct pval: %f',pVal)
+
+p=swtest([toStatsTest{2}{1},toStatsTest{2}{2}]);
+if p==1
+    [pVal, h]=ranksum(toStatsTest{2}{1},toStatsTest{2}{2});
+else
+    [h, pVal]=ttest(toStatsTest{2}{1},toStatsTest{2}{2});
+end
+sprintf('Miss pval: %f',pVal)
+
+% Proporção
+propPre = toStatsTest{1}{1}./(toStatsTest{1}{1}+toStatsTest{2}{1});
+propPos = toStatsTest{1}{2}./(toStatsTest{1}{2}+toStatsTest{2}{2});
+
+p=swtest([propPre,propPos]);
+if p==1
+    [pVal, h]=ranksum(propPre,propPos);
+else
+    [h, pVal]=ttest(propPre,propPos);
+end
+sprintf('Correct prop pval: %f',pVal)
+% Prop Mean
+sprintf('Prop. mean Pre: %.4f Pos: %.4f%', mean(propPre)*100, mean(propPos)*100)
 %%
-save = 1;
+save = 0;
 savePath = 'H:/.shortcut-targets-by-id/1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_/ProjetoWheelMaze/Resultados/EPS Ivan/Ultima abordagem(Flow - Trial)/Bar/';
 
 fig=figure(1);clf
