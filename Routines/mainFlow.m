@@ -36,7 +36,7 @@ savePath = 'D:/Ivan/Downloads/ProjetoWheelMaze/Dataset/Processed/Single Files/';
 
 % Change to 1 if yout want to process all files and create the data ( 1st
 % time )
-processFiles = 1;
+processFiles = 0;
 % Load files
 if processFiles
     for i=1:size(filePaths,1)
