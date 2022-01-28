@@ -1,15 +1,19 @@
 function plotScatterNCorr(x1, y1, x2, y2, speedthresh, speedLim, xLim, yLim, ttl, xlbl, ylbl, mrkSize)
-    % /10, convert mm/sec to cm/sec
     plot(x1, y1, 'ok', 'markerfacecolor', 'k', 'markersize', mrkSize)
     hold on
     plot(x2, y2, 'or', 'markerfacecolor', 'r', 'markersize', mrkSize)
     % Speed treshold line
-    plot([speedthresh, speedthresh], speedLim, 'k--')
+    if ~isempty(speedthresh)
+        plot([speedthresh, speedthresh], speedLim, 'k--')
+    end
     title(ttl)
     xlabel(xlbl)
     ylabel(ylbl)
-    xlim(xLim)
-    if sum(yLim) > 0
+    
+    if ~isempty(xLim)
+        xlim(xLim);
+    end
+    if ~isempty(yLim)
         ylim(yLim);
     end
    
