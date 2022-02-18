@@ -17,6 +17,7 @@ function [ testName, p, h , r, b] = getStats(left, right, sigOrRank, statsOrCorr
         b = '-';
     else
         coef = polyfit(left, right, 1);
+        
         b = coef(1);
         [r, p] = corr(left', right', 'Type', 'Spearman');
         testName = 'Spearman';

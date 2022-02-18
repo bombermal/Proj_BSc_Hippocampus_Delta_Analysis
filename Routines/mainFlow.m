@@ -2024,3 +2024,94 @@ if save
     saveas(fig, fileName, 'svg');
     saveas(fig, fileName, 'png');
 end
+%%
+fig = figure(1); clf
+fig.Position = [0, 0, 1800, 600];
+intervals = [600, 650; 700, 800];
+int = 2;
+
+[valPre, idxPre] = max(data{1}.Mz.Acg.Int(:, intervals(int, 1):intervals(int, 2)));
+[valPost, idxPost] = max(data{1}.Wh.Acg.Int(:, intervals(int, 1):intervals(int, 2)));
+
+subplot(2,1,1)
+histogram(idxPre,'FaceColor',[1 0 0])
+hold on
+histogram(idxPost,'FaceColor',[0 0 1])
+hold off
+box off
+
+subplot(2,1,2)
+ecdf(idxPre)
+hold on
+ecdf(idxPost)
+box off
+
+median(idxPre)
+median(idxPost)
+mean(idxPre)
+mean(idxPost)
+[ testName, p, h, ~, ~] = getStats(idxPre, idxPost, "Ranksum", "Statistic")
+%%
+intervals = [600, 650; 700, 800];
+intervalsKeys = ["Theta", "4Hz"];
+
+variables = {{data{1}.Mz.Acg.Int, 'Pre_Mz_Int'}, {data{1}.Wh.Acg.Int, 'Pre_Wh_Int'}, {data{2}.Mz.Acg.Int, 'Pos_Mz_Int'}, {data{2}.Wh.Acg.Int, 'Pos_Wh_Int'}, ...
+    {data{1}.Mz.Acg.Pyr, 'Pre_Mz_Pyr'}, {data{1}.Wh.Acg.Pyr, 'Pre_Wh_Pyr'}, {data{2}.Mz.Acg.Pyr, 'Pos_Mz_Pyr'}, {data{2}.Wh.Acg.Pyr, 'Pos_Wh_Pyr'}};
+
+temp = nchoosek(variables, 2);
+
+for int=1:2
+    for i=1:size(temp, 1)
+        auxLeft = temp{i, 1}{1}';
+        [valLeft, idxLeft] = max(auxLeft(intervals(int, 1):intervals(int, 2), :));
+        
+        auxRight = temp{i, 2}{1}';
+        [valRight, idxRight] = max(auxRight(intervals(int, 1):intervals(int, 2), :));
+        
+        [ testName, p, h, ~, ~] = getStats(idxLeft, idxRight, "Ranksum", "Statistic");
+        
+        sprintf("%s x %s - Interval: %i:%i - %s\t%s median time: %f, %s median time: %f\tTest name: %s, p-Value: %f, H: %i", temp{i, 1}{2}, temp{i, 2}{2}, intervals(int, 1), intervals(int, 2), intervalsKeys(int),...
+            temp{i, 1}{2}(5:end), median(idxLeft), temp{i, 2}{2}(5:end), median(idxRight), testName, p, h)
+    end
+end
+
+%%
+intervals = [600, 650; 700, 800];
+intervalsKeys = ["Theta", "4Hz"];
+
+prePost = 2;
+variables = {{data{1}.Mz.Acg.Int, 'Pre_Mz_Int'}, {data{1}.Wh.Acg.Int, 'Pre_Wh_Int'}, {data{2}.Mz.Acg.Int, 'Pos_Mz_Int'}, {data{2}.Wh.Acg.Int, 'Pos_Wh_Int'}, ...
+    {data{1}.Mz.Acg.Pyr, 'Pre_Mz_Pyr'}, {data{1}.Wh.Acg.Pyr, 'Pre_Wh_Pyr'}, {data{2}.Mz.Acg.Pyr, 'Pos_Mz_Pyr'}, {data{2}.Wh.Acg.Pyr, 'Pos_Wh_Pyr'}};
+
+lZero = variables{8};
+
+loop = {{data{prePost}.Wh.Acg.Int, "Wh_Int"}, {data{prePost}.Wh.Acg.Pyr, "Wh_Pyr"}, {data{prePost}.Mz.Acg.Int, "Mz_Int"}, {data{prePost}.Mz.Acg.Pyr, "Mz_Pyr"}};
+clc
+for int=1:2
+    lZero{2}
+    intervalsKeys(int)
+    speedLeft = [];
+    speedRight = [];
+    names = [];
+    pVals = [];
+    for i=1:size(loop, 2)
+        auxLeft = lZero{1}';
+        [valLeft, idxLeft] = max(auxLeft(intervals(int, 1):intervals(int, 2), :));
+        
+        auxRight = loop{i}{1}';
+        [valRight, idxRight] = max(auxRight(intervals(int, 1):intervals(int, 2), :));
+        
+        [ testName, p, h, ~, ~] = getStats(idxLeft, idxRight, "Ranksum", "Statistic");
+        
+%         sprintf("%s x %s - Interval: %i:%i - %s\t%s median time: %f, %s median time: %f\tTest name: %s, p-Value: %f, H: %i", loop{1}{2}, loop{i}{2}, intervals(int, 1), intervals(int, 2), intervalsKeys(int),...
+%             loop{1}{2}(5:end), median(idxLeft), loop{i}{2}(5:end), median(idxRight), testName, p, h)
+        names = [names, loop{i}{2}];
+        speedLeft = [speedLeft, median(idxLeft)];
+        speedRight = [speedRight, median(idxRight)];
+        pVals = [pVals, p];
+    end
+    speedLeft
+%     names
+    speedRight
+    pVals
+end
