@@ -2068,22 +2068,29 @@ for int=1:2
         auxRight = temp{i, 2}{1}';
         [valRight, idxRight] = max(auxRight(intervals(int, 1):intervals(int, 2), :));
         
-        [ testName, p, h, ~, ~] = getStats(idxLeft, idxRight, "Ranksum", "Statistic");
+        [ testName, p, h, ~, ~] = getStats(valLeft, valRight, "Ranksum", "Statistic");
         
         sprintf("%s x %s - Interval: %i:%i - %s\t%s median time: %f, %s median time: %f\tTest name: %s, p-Value: %f, H: %i", temp{i, 1}{2}, temp{i, 2}{2}, intervals(int, 1), intervals(int, 2), intervalsKeys(int),...
-            temp{i, 1}{2}(5:end), median(idxLeft), temp{i, 2}{2}(5:end), median(idxRight), testName, p, h)
+            temp{i, 1}{2}(5:end), median(valLeft), temp{i, 2}{2}(5:end), median(valRight), testName, p, h)
     end
 end
 
 %%
+if ~exist('dataUnorm')
+    tic
+    savePath = 'H:\.shortcut-targets-by-id\1Nli00DbOZhrqcakOcUuK8zlw9yPtuH6_\ProjetoWheelMaze\Dataset\DRYAD\Single Files';
+    file = sprintf('%s/%s.mat', savePath, 'AcgPwelchData');
+    load(file)
+    toc
+end
 intervals = [600, 650; 700, 800];
 intervalsKeys = ["Theta", "4Hz"];
 
-prePost = 2;
+prePost = 1;
 variables = {{data{1}.Mz.Acg.Int, 'Pre_Mz_Int'}, {data{1}.Wh.Acg.Int, 'Pre_Wh_Int'}, {data{2}.Mz.Acg.Int, 'Pos_Mz_Int'}, {data{2}.Wh.Acg.Int, 'Pos_Wh_Int'}, ...
     {data{1}.Mz.Acg.Pyr, 'Pre_Mz_Pyr'}, {data{1}.Wh.Acg.Pyr, 'Pre_Wh_Pyr'}, {data{2}.Mz.Acg.Pyr, 'Pos_Mz_Pyr'}, {data{2}.Wh.Acg.Pyr, 'Pos_Wh_Pyr'}};
 
-lZero = variables{8};
+lZero = variables{5};
 
 loop = {{data{prePost}.Wh.Acg.Int, "Wh_Int"}, {data{prePost}.Wh.Acg.Pyr, "Wh_Pyr"}, {data{prePost}.Mz.Acg.Int, "Mz_Int"}, {data{prePost}.Mz.Acg.Pyr, "Mz_Pyr"}};
 clc
