@@ -22,6 +22,9 @@ function plotBoxPlot(dataCell, dataTags, yLabel, xLabel, ttl, clrs)
         title(ttl)
     end
     
-    set(gca, 'Box', 'off')
+    set(gca, ...
+        'Box',      'off')%,...
+%         'Fontname', 'Arial',...
+%         'Fontsize', 18)
     
 end

@@ -2086,11 +2086,11 @@ end
 intervals = [600, 650; 700, 800];
 intervalsKeys = ["Theta", "4Hz"];
 
-prePost = 1;
+prePost = 2;
 variables = {{data{1}.Mz.Acg.Int, 'Pre_Mz_Int'}, {data{1}.Wh.Acg.Int, 'Pre_Wh_Int'}, {data{2}.Mz.Acg.Int, 'Pos_Mz_Int'}, {data{2}.Wh.Acg.Int, 'Pos_Wh_Int'}, ...
     {data{1}.Mz.Acg.Pyr, 'Pre_Mz_Pyr'}, {data{1}.Wh.Acg.Pyr, 'Pre_Wh_Pyr'}, {data{2}.Mz.Acg.Pyr, 'Pos_Mz_Pyr'}, {data{2}.Wh.Acg.Pyr, 'Pos_Wh_Pyr'}};
 
-lZero = variables{5};
+lZero = variables{8};
 
 loop = {{data{prePost}.Wh.Acg.Int, "Wh_Int"}, {data{prePost}.Wh.Acg.Pyr, "Wh_Pyr"}, {data{prePost}.Mz.Acg.Int, "Mz_Int"}, {data{prePost}.Mz.Acg.Pyr, "Mz_Pyr"}};
 clc
@@ -2108,13 +2108,13 @@ for int=1:2
         auxRight = loop{i}{1}';
         [valRight, idxRight] = max(auxRight(intervals(int, 1):intervals(int, 2), :));
         
-        [ testName, p, h, ~, ~] = getStats(idxLeft, idxRight, "Ranksum", "Statistic");
+        [ testName, p, h, ~, ~] = getStats(valLeft, valRight, "Ranksum", "Statistic");
         
 %         sprintf("%s x %s - Interval: %i:%i - %s\t%s median time: %f, %s median time: %f\tTest name: %s, p-Value: %f, H: %i", loop{1}{2}, loop{i}{2}, intervals(int, 1), intervals(int, 2), intervalsKeys(int),...
 %             loop{1}{2}(5:end), median(idxLeft), loop{i}{2}(5:end), median(idxRight), testName, p, h)
         names = [names, loop{i}{2}];
-        speedLeft = [speedLeft, median(idxLeft)];
-        speedRight = [speedRight, median(idxRight)];
+        speedLeft = [speedLeft, median(valLeft)];
+        speedRight = [speedRight, median(valRight)];
         pVals = [pVals, p];
     end
     speedLeft
@@ -2122,3 +2122,16 @@ for int=1:2
     speedRight
     pVals
 end
+%%
+Th=find(data{1}.PwelchF>8 & data{1}.PwelchF<15);
+Th2=find(data{2}.PwelchF>8 & data{2}.PwelchF<15);
+
+a = data{1}.Mz.Pwelch.Pyr(limMzPyr,Th);
+b = data{1}.Wh.Pwelch.Pyr(limWhPyr,Th);
+c = data{2}.Wh.Pwelch.Pyr(limWhPostPyr,Th2);
+
+x = [mean(a, 2); mean(b, 2); mean(c, 2)];
+y = [ones(size(mean(a, 2), 1), 1); ones(size(mean(b, 2), 1), 1)*2; ones(size(mean(c, 2), 1), 1)*3];
+[p,tbl,stats]  = kruskalwallis(x, y)
+
+multcompare(stats)
