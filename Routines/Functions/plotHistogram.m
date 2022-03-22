@@ -1,36 +1,31 @@
-function plotHistogram(data, bins, xLabel, ttl, clrs)
-    if length(data) == 1
-        histogram(data, bins)
+function plotHistogram(data, bins, colors, ttl, yLabel, xLabel, sqr, fontSz)
+
+    if size(data, 1) == 1
+        histogram(data, bins, 'FaceColor', colors)
     else
-        for i=1:length(data)
-            histogram(data(i), bins(1))
+        for i=1:size(data, 1)
+            histogram(data{i}, bins(i, :), 'FaceColor', colors(i))
             hold on
         end
         hold off
     end
-%     resp = struct('Y', [], 'Tags', []);
-%     for tg=1:size(dataTags, 2)
-%         sz = length(dataCell{tg});
-%         resp.Y = [ resp.Y, dataCell{tg}];
-%         resp.Tags = [ resp.Tags, repmat(dataTags(tg), 1, sz)];
-%     end
-%     
-%     if isempty(clrs)
-%         boxplot(resp.Y, resp.Tags)
-%     else
-%         boxplot(resp.Y, resp.Tags, "Colors", clrs)
-%     end
-% 
-%     if ~isempty(yLabel)
-%         ylabel(yLabel)
-%     end
-%     if ~isempty(xLabel)
-%         xlabel(xLabel)
-%     end
-%     if ~isempty(ttl)
-%         title(ttl)
-%     end
+    
+    if ~isempty(ttl)
+        title(ttl)
+    end
+    if ~isempty(yLabel)
+        ylabel(yLabel)
+    end
+    if ~isempty(xLabel)
+        xlabel(xLabel)
+    end
+    if ~isempty(sqr)
+        axis square
+    end
     
     set(gca, 'Box', 'off')
-    
+    if fontSz
+        set(gca, 'Fontname', 'Arial', ...
+            'Fontsize', 18)
+    end
 end
