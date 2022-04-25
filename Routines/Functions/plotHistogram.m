@@ -1,4 +1,4 @@
-function plotHistogram(data, bins, colors, ttl, yLabel, xLabel, sqr, fontSz)
+function plotHistogram(data, bins, colors, ttl, lgnd, yLabel, xLabel, sqr, fontSz)
 
     if size(data, 1) == 1
         histogram(data, bins, 'FaceColor', colors)
@@ -21,6 +21,9 @@ function plotHistogram(data, bins, colors, ttl, yLabel, xLabel, sqr, fontSz)
     end
     if ~isempty(sqr)
         axis square
+    end
+    if ~isempty(lgnd)
+        legend(lgnd)
     end
     
     set(gca, 'Box', 'off')

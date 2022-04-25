@@ -70,7 +70,7 @@ function data = fillStruct(srate, WindowLength, Overlap, NFFT, data, wSpeed, mSp
         whAux = mean(find(speedMaskWh));
 
         cChoice = data.Track.corrChoice(lapMask);
-        eeg = data.Track.eeg(lapMask);
+        eeg = data.Track.eeg(lapMask)/1000;
 
         % Mz
         [psd, frq] = pwelch(eeg(speedMaskMz)',WindowLength,Overlap,NFFT,srate);
