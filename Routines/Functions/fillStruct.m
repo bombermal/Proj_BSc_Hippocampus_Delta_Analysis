@@ -17,7 +17,8 @@ function data = fillStruct(srate, WindowLength, Overlap, NFFT, data, wSpeed, mSp
     phaCellT = {};
     freCellT = {};
 
-    eeg = data.Track.eeg;
+    % Conversion Microvolt to Milivolt
+    eeg = data.Track.eeg/1000;
 
     [bandD, ampD, phaD, freD] = ampPhaFreq(eeg',srate,dt,3,5, 1, 1);
     [bandT, ampT, phaT, freT] = ampPhaFreq(eeg',srate,dt,6,10, 1, 1);
@@ -70,6 +71,8 @@ function data = fillStruct(srate, WindowLength, Overlap, NFFT, data, wSpeed, mSp
         whAux = mean(find(speedMaskWh));
 
         cChoice = data.Track.corrChoice(lapMask);
+        
+        % Conversion Microvolt to Milivolt
         eeg = data.Track.eeg(lapMask)/1000;
 
         % Mz
