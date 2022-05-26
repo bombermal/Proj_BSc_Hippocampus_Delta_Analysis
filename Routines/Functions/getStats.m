@@ -16,9 +16,10 @@ function [ testName, p, h , r, b] = getStats(left, right, sigOrRank, statsOrCorr
         r = '-';
         b = '-';
     else
-        coef = polyfit(left, right, 1);
+        coef = polyfit(left, right, 1); % 1 = linear
         
-        b = coef(1);
+        mdl = fitlm(left, right);
+        b = mdl.Rsquared.Ordinary;
         [r, p] = corr(left', right', 'Type', 'Spearman');
         testName = 'Spearman';
         h = '-';
