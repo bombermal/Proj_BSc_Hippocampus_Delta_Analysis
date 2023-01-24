@@ -14,11 +14,11 @@ Recent studies have reported the occurrence of 2-4 Hz oscillations in the hippoc
 - [x] Figure 1
 	- [X] Panel A
 		- [X] **a1** - Maze 
-	- [ ] Panel B
-		- [ ] **b1.1** - Spectogram Maze
+	- [X] Panel B
+		- [X] **b1.1** - Spectogram Maze
 		- [X] **b1.2** - LFP Maze 
 		- [X] **b1.3** - Speed Maze
-		- [ ] **b2.1** - Spectogram Wheel
+		- [X] **b2.1** - Spectogram Wheel
 		- [X] **b2.2** - LFP Wheel 
 		- [X] **b2.3** - Speed Wheel
 	- [X] Panel C
